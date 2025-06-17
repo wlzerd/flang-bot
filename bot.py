@@ -3,6 +3,7 @@ import time
 import uuid
 from dataclasses import dataclass
 import random
+import datetime
 
 import discord
 from discord import app_commands
@@ -25,6 +26,8 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 honey_group = app_commands.Group(name="허니", description="허니 관련 명령")
 # 모험 명령 그룹
 adventure_group = app_commands.Group(name="모험", description="모험 관련 명령")
+# 랭킹 명령 그룹
+ranking_group = app_commands.Group(name="랭킹", description="랭킹 관련 명령")
 
 
 @dataclass
@@ -343,6 +346,57 @@ async def adventure_logs_command(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
+@ranking_group.command(name="주간", description="일주일 동안 획득한 허니 랭킹")
+async def weekly_ranking(interaction: discord.Interaction):
+    await ensure_user_record(interaction.user, interaction.guild)
+    today = datetime.datetime.now()
+    start = today - datetime.timedelta(days=today.weekday())
+    start = start.replace(hour=0, minute=0, second=0, microsecond=0)
+    end = start + datetime.timedelta(days=7)
+    ranking = db.get_earned_ranking(int(start.timestamp()), int(end.timestamp()))
+
+    embed = discord.Embed(title="주간 허니 랭킹", color=discord.Color.gold())
+    if not ranking:
+        embed.add_field(name="​", value="데이터가 없습니다.", inline=False)
+    for idx, row in enumerate(ranking, start=1):
+        name = row["nick"] or row["name"]
+        embed.add_field(name=f"{idx}위 - {name}", value=f"+{row['earned']}", inline=False)
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+@ranking_group.command(name="월간", description="한 달 동안 획득한 허니 랭킹")
+async def monthly_ranking(interaction: discord.Interaction):
+    await ensure_user_record(interaction.user, interaction.guild)
+    now = datetime.datetime.now()
+    start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    if start.month == 12:
+        next_month = start.replace(year=start.year + 1, month=1)
+    else:
+        next_month = start.replace(month=start.month + 1)
+    ranking = db.get_earned_ranking(int(start.timestamp()), int(next_month.timestamp()))
+
+    embed = discord.Embed(title="월간 허니 랭킹", color=discord.Color.gold())
+    if not ranking:
+        embed.add_field(name="​", value="데이터가 없습니다.", inline=False)
+    for idx, row in enumerate(ranking, start=1):
+        name = row["nick"] or row["name"]
+        embed.add_field(name=f"{idx}위 - {name}", value=f"+{row['earned']}", inline=False)
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+@ranking_group.command(name="누적", description="보유 허니 기준 랭킹")
+async def total_ranking(interaction: discord.Interaction):
+    await ensure_user_record(interaction.user, interaction.guild)
+    ranking = db.get_total_ranking()
+    embed = discord.Embed(title="누적 허니 랭킹", color=discord.Color.gold())
+    if not ranking:
+        embed.add_field(name="​", value="데이터가 없습니다.", inline=False)
+    for idx, row in enumerate(ranking, start=1):
+        name = row["nick"] or row["name"]
+        embed.add_field(name=f"{idx}위 - {name}", value=str(row['honey']), inline=False)
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
 @adventure_group.command(name="확률", description="모험 확률을 설정합니다")
 @app_commands.checks.has_permissions(administrator=True)
 @app_commands.describe(success="성공 확률", fail="실패 확률", normal="무난한 확률")
@@ -367,6 +421,7 @@ bot.tree.add_command(grant_honey)
 bot.tree.add_command(honey_group)
 bot.tree.add_command(adventure_logs_command)
 bot.tree.add_command(adventure_group)
+bot.tree.add_command(ranking_group)
 
 if __name__ == "__main__":
     if not TOKEN:
