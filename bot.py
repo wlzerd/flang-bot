@@ -37,6 +37,46 @@ class VoiceSession:
 voice_sessions: dict[int, VoiceSession] = {}
 
 
+class AdventureConfirmView(discord.ui.View):
+    def __init__(self, user_id: int, amount: int, success_p: float, fail_p: float, normal_p: float):
+        super().__init__(timeout=60)
+        self.user_id = user_id
+        self.amount = amount
+        self.success_p = success_p
+        self.fail_p = fail_p
+        self.normal_p = normal_p
+
+    @discord.ui.button(label="진행하기", style=discord.ButtonStyle.primary)
+    async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("이 모험을 시작할 권한이 없습니다.", ephemeral=True)
+            return
+        info = db.get_user(str(self.user_id))
+        if not info or info.get("honey", 0) < self.amount:
+            await interaction.response.send_message("허니가 부족합니다.", ephemeral=True)
+            return
+        db.add_honey(str(self.user_id), -self.amount)
+        roll = random.random() * 100
+        if roll < self.success_p:
+            db.add_honey(str(self.user_id), self.amount * 2)
+            result_msg = f"모험에 성공했습니다! {self.amount * 2} 허니를 받았습니다."
+        elif roll < self.success_p + self.fail_p:
+            result_msg = f"모험에 실패했습니다... {self.amount} 허니를 잃었습니다."
+        else:
+            db.add_honey(str(self.user_id), self.amount)
+            result_msg = f"무난히 끝났습니다. {self.amount} 허니를 돌려받았습니다."
+        await interaction.response.edit_message(content=result_msg, embed=None, view=None)
+        self.stop()
+
+    @discord.ui.button(label="취소하기", style=discord.ButtonStyle.secondary)
+    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("취소할 권한이 없습니다.", ephemeral=True)
+            return
+        await interaction.response.edit_message(content="모험이 취소되었습니다.", embed=None, view=None)
+        self.stop()
+
+
 async def ensure_user_record(user: discord.abc.User, guild: discord.Guild | None = None):
     existing = db.get_user(str(user.id))
     if existing:
@@ -267,22 +307,17 @@ async def adventure_random(
         await interaction.response.send_message("허니가 부족합니다.", ephemeral=True)
         return
 
-    db.add_honey(user_id, -amount)
     success_p, fail_p, normal_p = db.get_adventure_probabilities()
-    roll = random.random() * 100
-    if roll < success_p:
-        result = "성공"
-        db.add_honey(user_id, amount * 2)
-        msg = f"모험에 성공했습니다! {amount * 2} 허니를 받았습니다."
-    elif roll < success_p + fail_p:
-        result = "실패"
-        msg = f"모험에 실패했습니다... {amount} 허니를 잃었습니다."
-    else:
-        result = "무난하게 끝"
-        db.add_honey(user_id, amount)
-        msg = f"무난히 끝났습니다. {amount} 허니를 돌려받았습니다."
 
-    await interaction.response.send_message(msg, ephemeral=True)
+    embed = discord.Embed(title="모험 확률", color=discord.Color.gold())
+    embed.add_field(name="성공", value=f"{success_p}%", inline=True)
+    embed.add_field(name="실패", value=f"{fail_p}%", inline=True)
+    embed.add_field(name="무난", value=f"{normal_p}%", inline=True)
+    embed.set_footer(text=f"{amount} 허니를 사용합니다.")
+
+    view = AdventureConfirmView(interaction.user.id, amount, success_p, fail_p, normal_p)
+
+    await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
 
 @adventure_group.command(name="확률", description="모험 확률을 설정합니다")
