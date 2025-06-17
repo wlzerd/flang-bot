@@ -80,3 +80,27 @@ def add_honey(user_id: str, amount: int):
     )
     conn.commit()
     conn.close()
+
+
+def transfer_honey(from_user_id: str, to_user_id: str, amount: int) -> bool:
+    """Transfer honey from one user to another.
+
+    Returns True if the sender had enough honey and the transfer succeeded,
+    otherwise returns False without modifying any balances.
+    """
+    if amount <= 0:
+        return False
+
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute("SELECT honey FROM users WHERE user_id=?", (from_user_id,))
+    row = cur.fetchone()
+    if not row or row[0] < amount:
+        conn.close()
+        return False
+
+    cur.execute("UPDATE users SET honey = honey - ? WHERE user_id=?", (amount, from_user_id))
+    cur.execute("UPDATE users SET honey = honey + ? WHERE user_id=?", (amount, to_user_id))
+    conn.commit()
+    conn.close()
+    return True
