@@ -51,10 +51,11 @@ async def join_command(interaction: discord.Interaction):
         nick = getattr(user, "nick", None)
     existing = db.get_user(str(user.id))
     honey = existing.get("honey", 0) if existing else 0
+    discriminator = user.discriminator or ""
     db.add_or_update_user(
         str(user.id),
         user.name,
-        user.discriminator,
+        discriminator,
         avatar_url,
         nick,
         honey,
@@ -84,8 +85,10 @@ async def honey_command(interaction: discord.Interaction):
 
     embed = discord.Embed(color=discord.Color.gold())
     display_name = info.get("nick") or info.get("name") or "알수없음"
+    discriminator = info.get("discriminator")
+    author_name = display_name if not discriminator else f"{display_name}#{discriminator}"
     embed.set_author(
-        name=f"{display_name}#{info['discriminator']}",
+        name=author_name,
         icon_url=avatar_url,
     )
     embed.add_field(name="내 허니", value=str(info.get("honey", 0)), inline=True)
