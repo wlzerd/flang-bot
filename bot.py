@@ -212,7 +212,7 @@ async def gift_honey(
     )
     embed.add_field(
         name="​",
-        value=f"{sender_display}님이 {amount} 허니 만큼 보냈어요!",
+        value=f"{sender_display}님이 {amount}허니를 보냈어요!",
         inline=False,
     )
     try:
