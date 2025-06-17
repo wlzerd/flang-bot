@@ -18,6 +18,18 @@ def init_db():
         )
         """
     )
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS adventure_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            timestamp INTEGER NOT NULL,
+            result TEXT NOT NULL,
+            amount INTEGER NOT NULL,
+            change INTEGER NOT NULL
+        )
+        """
+    )
     cur.execute("PRAGMA table_info(users)")
     columns = [row[1] for row in cur.fetchall()]
     if "avatar_url" not in columns:
@@ -146,3 +158,41 @@ def set_adventure_probabilities(success: float, fail: float, normal: float):
     )
     conn.commit()
     conn.close()
+
+
+def add_adventure_log(user_id: str, result: str, amount: int, change: int):
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT INTO adventure_logs(user_id, timestamp, result, amount, change)"
+        " VALUES (?, strftime('%s','now'), ?, ?, ?)",
+        (user_id, result, amount, change),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_recent_adventure_logs(user_id: str, limit: int = 5):
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT timestamp, result, amount, change
+        FROM adventure_logs
+        WHERE user_id = ?
+        ORDER BY id DESC
+        LIMIT ?
+        """,
+        (user_id, limit),
+    )
+    rows = cur.fetchall()
+    conn.close()
+    return [
+        {
+            "timestamp": row[0],
+            "result": row[1],
+            "amount": row[2],
+            "change": row[3],
+        }
+        for row in rows
+    ]
