@@ -84,7 +84,7 @@ async def honey_command(interaction: discord.Interaction):
 
     embed = discord.Embed(color=discord.Color.gold())
     embed.set_author(
-        name=f"{info.get('name','알수없음')}#{info['discriminator']}",
+        name=f"{info.get('nick','알수없음')}#{info['discriminator']}",
         icon_url=avatar_url,
     )
     embed.add_field(name="내 허니", value=str(info.get("honey", 0)), inline=True)
