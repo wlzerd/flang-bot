@@ -1,63 +1,15 @@
 import os
-import sqlite3
 import discord
 from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 
+import db
+
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 
 description = "간단한 디스코드 봇"
-
-DB_FILE = "users.db"
-
-def init_db():
-    conn = sqlite3.connect(DB_FILE)
-    cur = conn.cursor()
-    cur.execute(
-        """
-        CREATE TABLE IF NOT EXISTS users (
-            user_id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            discriminator TEXT NOT NULL,
-            avatar_url TEXT,
-            nick TEXT
-        )
-        """
-    )
-    cur.execute("PRAGMA table_info(users)")
-    columns = [row[1] for row in cur.fetchall()]
-    if "avatar_url" not in columns:
-        cur.execute("ALTER TABLE users ADD COLUMN avatar_url TEXT")
-    if "nick" not in columns:
-        cur.execute("ALTER TABLE users ADD COLUMN nick TEXT")
-    conn.commit()
-    conn.close()
-
-def add_or_update_user(
-    user_id: str,
-    name: str,
-    discriminator: str,
-    avatar_url: str | None,
-    nick: str | None,
-):
-    conn = sqlite3.connect(DB_FILE)
-    cur = conn.cursor()
-    cur.execute(
-        """
-        INSERT INTO users(user_id, name, discriminator, avatar_url, nick)
-        VALUES (?, ?, ?, ?, ?)
-        ON CONFLICT(user_id) DO UPDATE SET
-            name=excluded.name,
-            discriminator=excluded.discriminator,
-            avatar_url=excluded.avatar_url,
-            nick=excluded.nick
-        """,
-        (user_id, name, discriminator, avatar_url, nick),
-    )
-    conn.commit()
-    conn.close()
 
 intents = discord.Intents.default()
 intents.members = True
@@ -91,7 +43,7 @@ async def join_command(interaction: discord.Interaction):
     except Exception:
         pass
     nick = getattr(user, "nick", None)
-    add_or_update_user(
+    db.add_or_update_user(
         str(user.id),
         user.name,
         user.discriminator,
@@ -103,11 +55,34 @@ async def join_command(interaction: discord.Interaction):
     )
 
 
+@app_commands.command(name="꿀단지", description="저장된 유저 정보 보기")
+async def honey_command(interaction: discord.Interaction):
+    user_id = str(interaction.user.id)
+    info = db.get_user(user_id)
+    if not info:
+        await interaction.response.send_message(
+            "저장된 정보가 없습니다. /가입 명령으로 등록해주세요.",
+            ephemeral=True,
+        )
+        return
+
+    message = (
+        f"ID: {info['user_id']}\n"
+        f"이름: {info['name']}#{info['discriminator']}\n"
+    )
+    if info.get("nick"):
+        message += f"닉네임: {info['nick']}\n"
+    if info.get("avatar_url"):
+        message += f"아바타: {info['avatar_url']}"
+    await interaction.response.send_message(message, ephemeral=True)
+
+
 bot.tree.add_command(greet_command)
 bot.tree.add_command(join_command)
+bot.tree.add_command(honey_command)
 
 if __name__ == "__main__":
     if not TOKEN:
         raise RuntimeError("DISCORD_TOKEN 값이 설정되지 않았습니다. 환경 변수로 설정하거나 .env 파일을 사용하세요.")
-    init_db()
+    db.init_db()
     bot.run(TOKEN)
