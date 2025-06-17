@@ -1,5 +1,5 @@
 import os
-import json
+import sqlite3
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -10,17 +10,38 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 
 description = "간단한 디스코드 봇"
 
-DATA_FILE = "users.json"
+DB_FILE = "users.db"
 
-def load_user_data():
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    return {}
+def init_db():
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS users (
+            user_id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            discriminator TEXT NOT NULL
+        )
+        """
+    )
+    conn.commit()
+    conn.close()
 
-def save_user_data(data: dict):
-    with open(DATA_FILE, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+def add_or_update_user(user_id: str, name: str, discriminator: str):
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        INSERT INTO users(user_id, name, discriminator)
+        VALUES (?, ?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET
+            name=excluded.name,
+            discriminator=excluded.discriminator
+        """,
+        (user_id, name, discriminator),
+    )
+    conn.commit()
+    conn.close()
 
 intents = discord.Intents.default()
 
@@ -47,12 +68,7 @@ async def greet_command(interaction: discord.Interaction):
 @app_commands.command(name="가입", description="봇 서비스를 위한 가입")
 async def join_command(interaction: discord.Interaction):
     user = interaction.user
-    data = load_user_data()
-    data[str(user.id)] = {
-        "name": user.name,
-        "discriminator": user.discriminator,
-    }
-    save_user_data(data)
+    add_or_update_user(str(user.id), user.name, user.discriminator)
     await interaction.response.send_message(
         f"{user.name}님의 정보가 저장되었습니다.", ephemeral=True
     )
@@ -64,4 +80,5 @@ bot.tree.add_command(join_command)
 if __name__ == "__main__":
     if not TOKEN:
         raise RuntimeError("DISCORD_TOKEN 값이 설정되지 않았습니다. 환경 변수로 설정하거나 .env 파일을 사용하세요.")
+    init_db()
     bot.run(TOKEN)
