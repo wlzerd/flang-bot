@@ -69,11 +69,17 @@ async def honey_command(interaction: discord.Interaction):
         )
         return
 
+    avatar_url = info.get("avatar_url")
+    if not avatar_url:
+        try:
+            avatar_url = interaction.user.display_avatar.url
+        except Exception:
+            avatar_url = None
+
     embed = discord.Embed(title="내 허니", color=discord.Color.gold())
-    embed.add_field(
-        name="이름",
-        value=f"{info['name']}#{info['discriminator']}",
-        inline=False,
+    embed.set_author(
+        name=f"{info['name']}#{info['discriminator']}",
+        icon_url=avatar_url,
     )
     embed.add_field(name="허니", value=str(info.get("honey", 0)), inline=False)
     await interaction.response.send_message(embed=embed, ephemeral=True)
