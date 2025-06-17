@@ -20,30 +20,47 @@ def init_db():
         CREATE TABLE IF NOT EXISTS users (
             user_id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
-            discriminator TEXT NOT NULL
+            discriminator TEXT NOT NULL,
+            avatar_url TEXT,
+            nick TEXT
         )
         """
     )
+    cur.execute("PRAGMA table_info(users)")
+    columns = [row[1] for row in cur.fetchall()]
+    if "avatar_url" not in columns:
+        cur.execute("ALTER TABLE users ADD COLUMN avatar_url TEXT")
+    if "nick" not in columns:
+        cur.execute("ALTER TABLE users ADD COLUMN nick TEXT")
     conn.commit()
     conn.close()
 
-def add_or_update_user(user_id: str, name: str, discriminator: str):
+def add_or_update_user(
+    user_id: str,
+    name: str,
+    discriminator: str,
+    avatar_url: str | None,
+    nick: str | None,
+):
     conn = sqlite3.connect(DB_FILE)
     cur = conn.cursor()
     cur.execute(
         """
-        INSERT INTO users(user_id, name, discriminator)
-        VALUES (?, ?, ?)
+        INSERT INTO users(user_id, name, discriminator, avatar_url, nick)
+        VALUES (?, ?, ?, ?, ?)
         ON CONFLICT(user_id) DO UPDATE SET
             name=excluded.name,
-            discriminator=excluded.discriminator
+            discriminator=excluded.discriminator,
+            avatar_url=excluded.avatar_url,
+            nick=excluded.nick
         """,
-        (user_id, name, discriminator),
+        (user_id, name, discriminator, avatar_url, nick),
     )
     conn.commit()
     conn.close()
 
 intents = discord.Intents.default()
+intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
@@ -68,7 +85,19 @@ async def greet_command(interaction: discord.Interaction):
 @app_commands.command(name="가입", description="봇 서비스를 위한 가입")
 async def join_command(interaction: discord.Interaction):
     user = interaction.user
-    add_or_update_user(str(user.id), user.name, user.discriminator)
+    avatar_url = None
+    try:
+        avatar_url = user.display_avatar.url
+    except Exception:
+        pass
+    nick = getattr(user, "nick", None)
+    add_or_update_user(
+        str(user.id),
+        user.name,
+        user.discriminator,
+        avatar_url,
+        nick,
+    )
     await interaction.response.send_message(
         f"{user.name}님의 정보가 저장되었습니다.", ephemeral=True
     )
