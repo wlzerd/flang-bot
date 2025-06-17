@@ -47,7 +47,7 @@ async def greet_command(interaction: discord.Interaction):
     await interaction.response.send_message("안녕하세요!", ephemeral=True)
 
 
-@cmd_group.command(name="가입", description="사용자 정보를 저장합니다")
+@cmd_group.command(name="가입", description="유저 정보를 봇과 동기화 합니다")
 async def join_command(interaction: discord.Interaction):
     user = interaction.user
     data = load_user_data()
