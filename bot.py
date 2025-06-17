@@ -60,11 +60,14 @@ class AdventureConfirmView(discord.ui.View):
         if roll < self.success_p:
             db.add_honey(str(self.user_id), self.amount * 2)
             result_msg = f"모험에 성공했습니다! {self.amount * 2} 허니를 받았습니다."
+            db.add_adventure_log(str(self.user_id), "성공", self.amount, self.amount)
         elif roll < self.success_p + self.fail_p:
             result_msg = f"모험에 실패했습니다... {self.amount} 허니를 잃었습니다."
+            db.add_adventure_log(str(self.user_id), "실패", self.amount, -self.amount)
         else:
             db.add_honey(str(self.user_id), self.amount)
             result_msg = f"무난히 끝났습니다. {self.amount} 허니를 돌려받았습니다."
+            db.add_adventure_log(str(self.user_id), "무난", self.amount, 0)
         await interaction.response.edit_message(content=result_msg, embed=None, view=None)
         self.stop()
 
@@ -320,6 +323,26 @@ async def adventure_random(
     await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
 
+@app_commands.command(name="모험기록", description="최근 모험 기록을 확인합니다")
+async def adventure_logs_command(interaction: discord.Interaction):
+    await ensure_user_record(interaction.user, interaction.guild)
+    logs = db.get_recent_adventure_logs(str(interaction.user.id), 5)
+    if not logs:
+        await interaction.response.send_message("모험 기록이 없습니다.", ephemeral=True)
+        return
+
+    embed = discord.Embed(title="최근 모험 기록", color=discord.Color.gold())
+    for log in logs:
+        ts = time.strftime("%Y-%m-%d %H:%M", time.localtime(int(log["timestamp"])))
+        change = f"{log['change']:+d}"
+        embed.add_field(
+            name=ts,
+            value=f"{log['result']} (변동 {change} 허니)",
+            inline=False,
+        )
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
 @adventure_group.command(name="확률", description="모험 확률을 설정합니다")
 @app_commands.checks.has_permissions(administrator=True)
 @app_commands.describe(success="성공 확률", fail="실패 확률", normal="무난한 확률")
@@ -342,6 +365,7 @@ bot.tree.add_command(join_command)
 bot.tree.add_command(honey_command)
 bot.tree.add_command(grant_honey)
 bot.tree.add_command(honey_group)
+bot.tree.add_command(adventure_logs_command)
 bot.tree.add_command(adventure_group)
 
 if __name__ == "__main__":
