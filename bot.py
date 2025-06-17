@@ -66,15 +66,16 @@ async def honey_command(interaction: discord.Interaction):
         )
         return
 
-    message = (
-        f"ID: {info['user_id']}\n"
-        f"이름: {info['name']}#{info['discriminator']}\n"
+    embed = discord.Embed(title="저장된 유저 정보", color=discord.Color.gold())
+    embed.add_field(name="ID", value=info["user_id"], inline=False)
+    embed.add_field(
+        name="이름", value=f"{info['name']}#{info['discriminator']}", inline=False
     )
     if info.get("nick"):
-        message += f"닉네임: {info['nick']}\n"
+        embed.add_field(name="닉네임", value=info["nick"], inline=False)
     if info.get("avatar_url"):
-        message += f"아바타: {info['avatar_url']}"
-    await interaction.response.send_message(message, ephemeral=True)
+        embed.set_thumbnail(url=info["avatar_url"])
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 bot.tree.add_command(greet_command)
