@@ -24,3 +24,16 @@
 사용자 정보는 같은 디렉터리에 생성되는 `users.db` SQLite 파일에 저장됩니다.
 
 봇이 온라인 상태가 되면 Discord 서버에서 `/인사` 혹은 `/가입`을 실행하여 동작을 확인할 수 있습니다.
+
+## 예제: 허니 적립
+
+`honey_counter.py` 파일에는 텍스트 채팅 시 1 허니, 음성 채팅 시 0.5 허니를 적립하고 소수점 첫째 자리까지만 표시하는 간단한 예제가 담겨 있습니다.
+
+```python
+from honey_counter import User
+
+user = User()
+user.add_text_chat()
+user.add_voice_chat()
+print(user.get_honey_str())  # '1.5'
+```
