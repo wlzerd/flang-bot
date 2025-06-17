@@ -20,6 +20,9 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# 허니 모임 위한 그룹
+honey_group = app_commands.Group(name="허니", description="허니 관련 명령")
+
 
 @dataclass
 class VoiceSession:
@@ -169,9 +172,41 @@ async def honey_command(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
+@honey_group.command(name="선물", description="다른 사용자에게 허니를 선물합니다")
+@app_commands.describe(user="허니를 받을 사용자", amount="선물할 허니 양")
+async def gift_honey(
+    interaction: discord.Interaction,
+    user: discord.Member,
+    amount: app_commands.Range[int, 1],
+):
+    await ensure_user_record(interaction.user, interaction.guild)
+    await ensure_user_record(user, interaction.guild)
+
+    sender_id = str(interaction.user.id)
+    receiver_id = str(user.id)
+    if sender_id == receiver_id:
+        await interaction.response.send_message(
+            "자신에게는 허니를 선물할 수 없습니다.", ephemeral=True
+        )
+        return
+
+    success = db.transfer_honey(sender_id, receiver_id, amount)
+    if not success:
+        await interaction.response.send_message(
+            "허니가 부족합니다.", ephemeral=True
+        )
+        return
+
+    await interaction.response.send_message(
+        f"{user.mention}에게 {amount} 허니를 선물했습니다!",
+        ephemeral=True,
+    )
+
+
 bot.tree.add_command(greet_command)
 bot.tree.add_command(join_command)
 bot.tree.add_command(honey_command)
+bot.tree.add_command(honey_group)
 
 if __name__ == "__main__":
     if not TOKEN:
