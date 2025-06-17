@@ -222,7 +222,12 @@ async def gift_honey(
 
 
 @app_commands.command(name="지급", description="특정 사유로 허니를 지급합니다")
-@app_commands.describe(user="허니를 지급할 사용자", amount="지급할 허니 양", reason="지급 사유")
+@app_commands.checks.has_permissions(administrator=True)
+@app_commands.describe(
+    user="허니를 지급할 사용자",
+    amount="지급할 허니 양",
+    reason="지급 사유",
+)
 async def grant_honey(
     interaction: discord.Interaction,
     user: discord.Member,
