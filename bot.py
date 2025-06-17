@@ -60,9 +60,10 @@ async def ensure_user_record(user: discord.abc.User, guild: discord.Guild | None
 
 @tasks.loop(seconds=60)
 async def tick_voice_sessions():
+    """Award honey to users connected to voice channels."""
     now = time.time()
     for session in list(voice_sessions.values()):
-        db.add_honey(session.user_id, 1)
+        db.add_honey(session.user_id, 0.5)
         session.last_award = now
 
 
