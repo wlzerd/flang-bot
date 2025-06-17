@@ -39,15 +39,12 @@ async def on_ready():
         print(f"Failed to sync commands: {e}")
 
 
-cmd_group = app_commands.Group(name="커맨드", description="샘플 커맨드 그룹")
-
-
-@cmd_group.command(name="인사", description="인사 메시지")
+@app_commands.command(name="인사", description="인사 메시지")
 async def greet_command(interaction: discord.Interaction):
     await interaction.response.send_message("안녕하세요!", ephemeral=True)
 
 
-@cmd_group.command(name="가입", description="유저 정보를 봇과 동기화 합니다")
+@app_commands.command(name="가입", description="사용자 정보를 저장합니다")
 async def join_command(interaction: discord.Interaction):
     user = interaction.user
     data = load_user_data()
@@ -61,7 +58,8 @@ async def join_command(interaction: discord.Interaction):
     )
 
 
-bot.tree.add_command(cmd_group)
+bot.tree.add_command(greet_command)
+bot.tree.add_command(join_command)
 
 if __name__ == "__main__":
     if not TOKEN:
