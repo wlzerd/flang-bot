@@ -30,6 +30,16 @@ def init_db():
         )
         """
     )
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS honey_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            timestamp INTEGER NOT NULL,
+            amount INTEGER NOT NULL
+        )
+        """
+    )
     cur.execute("PRAGMA table_info(users)")
     columns = [row[1] for row in cur.fetchall()]
     if "avatar_url" not in columns:
@@ -103,6 +113,11 @@ def add_honey(user_id: str, amount: int):
         "UPDATE users SET honey = honey + ? WHERE user_id=?",
         (amount, user_id),
     )
+    cur.execute(
+        "INSERT INTO honey_history(user_id, timestamp, amount)"
+        " VALUES (?, strftime('%s','now'), ?)",
+        (user_id, amount),
+    )
     conn.commit()
     conn.close()
 
@@ -125,7 +140,17 @@ def transfer_honey(from_user_id: str, to_user_id: str, amount: int) -> bool:
         return False
 
     cur.execute("UPDATE users SET honey = honey - ? WHERE user_id=?", (amount, from_user_id))
+    cur.execute(
+        "INSERT INTO honey_history(user_id, timestamp, amount)"
+        " VALUES (?, strftime('%s','now'), ?)",
+        (from_user_id, -amount),
+    )
     cur.execute("UPDATE users SET honey = honey + ? WHERE user_id=?", (amount, to_user_id))
+    cur.execute(
+        "INSERT INTO honey_history(user_id, timestamp, amount)"
+        " VALUES (?, strftime('%s','now'), ?)",
+        (to_user_id, amount),
+    )
     conn.commit()
     conn.close()
     return True
@@ -193,6 +218,56 @@ def get_recent_adventure_logs(user_id: str, limit: int = 5):
             "result": row[1],
             "amount": row[2],
             "change": row[3],
+        }
+        for row in rows
+    ]
+
+
+def get_earned_ranking(start_ts: int, end_ts: int, limit: int = 10):
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT u.user_id, u.name, u.discriminator, u.nick, SUM(h.amount) AS total
+        FROM honey_history h
+        JOIN users u ON h.user_id = u.user_id
+        WHERE h.timestamp >= ? AND h.timestamp < ? AND h.amount > 0
+        GROUP BY h.user_id
+        ORDER BY total DESC
+        LIMIT ?
+        """,
+        (start_ts, end_ts, limit),
+    )
+    rows = cur.fetchall()
+    conn.close()
+    return [
+        {
+            "user_id": row[0],
+            "name": row[1],
+            "discriminator": row[2],
+            "nick": row[3],
+            "earned": row[4],
+        }
+        for row in rows
+    ]
+
+
+def get_total_ranking(limit: int = 10):
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT user_id, name, discriminator, nick, honey FROM users ORDER BY honey DESC LIMIT ?",
+        (limit,),
+    )
+    rows = cur.fetchall()
+    conn.close()
+    return [
+        {
+            "user_id": row[0],
+            "name": row[1],
+            "discriminator": row[2],
+            "nick": row[3],
+            "honey": row[4],
         }
         for row in rows
     ]
