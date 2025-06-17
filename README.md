@@ -4,12 +4,16 @@
 
 ## 사용 방법
 
-1. `discord.py` 라이브러리를 설치합니다:
+1. 필요한 라이브러리를 설치합니다:
    ```bash
-   pip install discord.py
+   pip install -r requirements.txt
    ```
 
-2. `DISCORD_TOKEN` 환경 변수를 여러분의 봇 토큰으로 설정합니다.
+2. 루트 디렉터리에 `.env` 파일을 만들고 다음과 같이 봇 토큰을 설정합니다:
+   ```env
+   DISCORD_TOKEN=여러분의봇토큰
+   ```
+   혹은 `DISCORD_TOKEN` 환경 변수를 직접 설정해도 됩니다.
 
 3. `bot.py`를 실행하여 봇을 시작합니다:
    ```bash
