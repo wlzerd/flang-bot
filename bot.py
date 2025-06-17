@@ -202,6 +202,21 @@ async def gift_honey(
         ephemeral=True,
     )
 
+    # Notify the receiver via DM with an embed
+    sender_display = getattr(interaction.user, "display_name", interaction.user.name)
+    embed = discord.Embed(
+        title="선물이 도착했어요!", color=discord.Color.gold()
+    )
+    embed.add_field(
+        name="​",
+        value=f"{sender_display}님이 {amount} 허니 만큼 보냈어요!",
+        inline=False,
+    )
+    try:
+        await user.send(embed=embed)
+    except Exception:
+        pass
+
 
 bot.tree.add_command(greet_command)
 bot.tree.add_command(join_command)
