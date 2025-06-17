@@ -2,7 +2,9 @@ import os
 import discord
 from discord import app_commands
 from discord.ext import commands
+from dotenv import load_dotenv
 
+load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 
 description = "간단한 디스코드 봇"
@@ -28,5 +30,5 @@ async def slash_command(interaction: discord.Interaction):
 
 if __name__ == "__main__":
     if not TOKEN:
-        raise RuntimeError("DISCORD_TOKEN 환경변수가 설정되지 않았습니다.")
+        raise RuntimeError("DISCORD_TOKEN 값이 설정되지 않았습니다. 환경 변수로 설정하거나 .env 파일을 사용하세요.")
     bot.run(TOKEN)
