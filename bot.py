@@ -2,6 +2,7 @@ import os
 import time
 import uuid
 from dataclasses import dataclass
+import random
 
 import discord
 from discord import app_commands
@@ -22,6 +23,8 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 # 허니 모임 위한 그룹
 honey_group = app_commands.Group(name="허니", description="허니 관련 명령")
+# 모험 명령 그룹
+adventure_group = app_commands.Group(name="모험", description="모험 관련 명령")
 
 
 @dataclass
@@ -218,10 +221,60 @@ async def gift_honey(
         pass
 
 
+@adventure_group.command(name="랜덤", description="모험을 진행합니다")
+@app_commands.describe(amount="사용할 허니 양")
+async def adventure_random(
+    interaction: discord.Interaction,
+    amount: app_commands.Range[int, 200],
+):
+    await ensure_user_record(interaction.user, interaction.guild)
+
+    user_id = str(interaction.user.id)
+    info = db.get_user(user_id)
+    if not info or info.get("honey", 0) < amount:
+        await interaction.response.send_message("허니가 부족합니다.", ephemeral=True)
+        return
+
+    db.add_honey(user_id, -amount)
+    success_p, fail_p, normal_p = db.get_adventure_probabilities()
+    roll = random.random() * 100
+    if roll < success_p:
+        result = "성공"
+        db.add_honey(user_id, amount * 2)
+        msg = f"모험에 성공했습니다! {amount * 2} 허니를 받았습니다."
+    elif roll < success_p + fail_p:
+        result = "실패"
+        msg = f"모험에 실패했습니다... {amount} 허니를 잃었습니다."
+    else:
+        result = "무난하게 끝"
+        db.add_honey(user_id, amount)
+        msg = f"무난히 끝났습니다. {amount} 허니를 돌려받았습니다."
+
+    await interaction.response.send_message(msg, ephemeral=True)
+
+
+@adventure_group.command(name="확률", description="모험 확률을 설정합니다")
+@app_commands.checks.has_permissions(administrator=True)
+@app_commands.describe(success="성공 확률", fail="실패 확률", normal="무난한 확률")
+async def set_adventure_prob(
+    interaction: discord.Interaction,
+    success: app_commands.Range[float, 0, 100],
+    fail: app_commands.Range[float, 0, 100],
+    normal: app_commands.Range[float, 0, 100],
+):
+    total = success + fail + normal
+    if abs(total - 100) > 1e-6:
+        await interaction.response.send_message("세 확률의 합은 100이어야 합니다.", ephemeral=True)
+        return
+    db.set_adventure_probabilities(success, fail, normal)
+    await interaction.response.send_message("모험 확률이 업데이트되었습니다.", ephemeral=True)
+
+
 bot.tree.add_command(greet_command)
 bot.tree.add_command(join_command)
 bot.tree.add_command(honey_command)
 bot.tree.add_command(honey_group)
+bot.tree.add_command(adventure_group)
 
 if __name__ == "__main__":
     if not TOKEN:
