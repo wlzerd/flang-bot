@@ -86,7 +86,7 @@ async def honey_command(interaction: discord.Interaction):
     embed = discord.Embed(color=discord.Color.gold())
     display_name = info.get("nick") or info.get("name") or "알수없음"
     discriminator = info.get("discriminator")
-    author_name = display_name if not discriminator else f"{display_name}#{discriminator}"
+    author_name = display_name if not discriminator else f"{display_name}"
     embed.set_author(
         name=author_name,
         icon_url=avatar_url,
