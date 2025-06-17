@@ -43,12 +43,15 @@ async def join_command(interaction: discord.Interaction):
     except Exception:
         pass
     nick = getattr(user, "nick", None)
+    existing = db.get_user(str(user.id))
+    honey = existing.get("honey", 0) if existing else 0
     db.add_or_update_user(
         str(user.id),
         user.name,
         user.discriminator,
         avatar_url,
         nick,
+        honey,
     )
     await interaction.response.send_message(
         f"{user.name}님의 정보가 저장되었습니다.", ephemeral=True
@@ -66,15 +69,13 @@ async def honey_command(interaction: discord.Interaction):
         )
         return
 
-    embed = discord.Embed(title="저장된 유저 정보", color=discord.Color.gold())
-    embed.add_field(name="ID", value=info["user_id"], inline=False)
+    embed = discord.Embed(title="내 허니", color=discord.Color.gold())
     embed.add_field(
-        name="이름", value=f"{info['name']}#{info['discriminator']}", inline=False
+        name="이름",
+        value=f"{info['name']}#{info['discriminator']}",
+        inline=False,
     )
-    if info.get("nick"):
-        embed.add_field(name="닉네임", value=info["nick"], inline=False)
-    if info.get("avatar_url"):
-        embed.set_thumbnail(url=info["avatar_url"])
+    embed.add_field(name="허니", value=str(info.get("honey", 0)), inline=False)
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
