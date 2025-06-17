@@ -42,7 +42,13 @@ async def join_command(interaction: discord.Interaction):
         avatar_url = user.display_avatar.url
     except Exception:
         pass
-    nick = getattr(user, "nick", None)
+    nick = None
+    if interaction.guild:
+        member = interaction.guild.get_member(user.id)
+        if member:
+            nick = member.nick
+    if nick is None:
+        nick = getattr(user, "nick", None)
     existing = db.get_user(str(user.id))
     honey = existing.get("honey", 0) if existing else 0
     db.add_or_update_user(
