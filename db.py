@@ -26,6 +26,19 @@ def init_db():
         cur.execute("ALTER TABLE users ADD COLUMN nick TEXT")
     if "honey" not in columns:
         cur.execute("ALTER TABLE users ADD COLUMN honey INTEGER NOT NULL DEFAULT 0")
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS adventure_probabilities (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            success REAL NOT NULL,
+            fail REAL NOT NULL,
+            normal REAL NOT NULL
+        )
+        """
+    )
+    cur.execute(
+        "INSERT OR IGNORE INTO adventure_probabilities(id, success, fail, normal) VALUES (1, 30, 30, 40)"
+    )
     conn.commit()
     conn.close()
 
@@ -104,3 +117,32 @@ def transfer_honey(from_user_id: str, to_user_id: str, amount: int) -> bool:
     conn.commit()
     conn.close()
     return True
+
+
+def get_adventure_probabilities():
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT success, fail, normal FROM adventure_probabilities WHERE id=1"
+    )
+    row = cur.fetchone()
+    if not row:
+        row = (30.0, 30.0, 40.0)
+        cur.execute(
+            "INSERT OR REPLACE INTO adventure_probabilities(id, success, fail, normal) VALUES (1, ?, ?, ?)",
+            row,
+        )
+        conn.commit()
+    conn.close()
+    return row
+
+
+def set_adventure_probabilities(success: float, fail: float, normal: float):
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute(
+        "REPLACE INTO adventure_probabilities(id, success, fail, normal) VALUES (1, ?, ?, ?)",
+        (success, fail, normal),
+    )
+    conn.commit()
+    conn.close()
