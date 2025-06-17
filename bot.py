@@ -1,7 +1,11 @@
 import os
+import time
+import uuid
+from dataclasses import dataclass
+
 import discord
 from discord import app_commands
-from discord.ext import commands
+from discord.ext import commands, tasks
 from dotenv import load_dotenv
 
 import db
@@ -17,6 +21,73 @@ intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 
+@dataclass
+class VoiceSession:
+    session_id: str
+    user_id: str
+    last_award: float
+
+
+voice_sessions: dict[int, VoiceSession] = {}
+
+
+async def ensure_user_record(user: discord.abc.User, guild: discord.Guild | None = None):
+    existing = db.get_user(str(user.id))
+    if existing:
+        return
+    avatar_url = None
+    try:
+        avatar_url = user.display_avatar.url
+    except Exception:
+        pass
+    nick = None
+    if guild:
+        member = guild.get_member(user.id)
+        if member:
+            nick = member.nick
+    if nick is None:
+        nick = getattr(user, "nick", None)
+    discriminator = user.discriminator or ""
+    db.add_or_update_user(
+        str(user.id),
+        user.name,
+        discriminator,
+        avatar_url,
+        nick,
+        0,
+    )
+
+
+@tasks.loop(seconds=60)
+async def tick_voice_sessions():
+    now = time.time()
+    for session in list(voice_sessions.values()):
+        db.add_honey(session.user_id, 1)
+        session.last_award = now
+
+
+@bot.event
+async def on_message(message: discord.Message):
+    if message.author.bot:
+        return
+    await ensure_user_record(message.author, message.guild)
+    db.add_honey(str(message.author.id), 1)
+    await bot.process_commands(message)
+
+
+@bot.event
+async def on_voice_state_update(member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+    if before.channel is None and after.channel is not None:
+        await ensure_user_record(member, after.channel.guild)
+        voice_sessions[member.id] = VoiceSession(
+            session_id=str(uuid.uuid4()),
+            user_id=str(member.id),
+            last_award=time.time(),
+        )
+    elif before.channel is not None and after.channel is None:
+        voice_sessions.pop(member.id, None)
+
+
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user} (ID: {bot.user.id})')
@@ -27,6 +98,8 @@ async def on_ready():
         synced = await bot.tree.sync(guild=discord.Object(id=GUILD_ID))
     except Exception as e:
         print(f"Failed to sync commands: {e}")
+    if not tick_voice_sessions.is_running():
+        tick_voice_sessions.start()
 
 
 @app_commands.command(name="인사", description="인사 메시지")
