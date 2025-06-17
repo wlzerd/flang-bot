@@ -3,7 +3,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-TOKEN = os.getenv('DISCORD_TOKEN')
+TOKEN = os.getenv('')
 
 description = "간단한 디스코드 봇"
 
