@@ -221,6 +221,33 @@ async def gift_honey(
         pass
 
 
+@app_commands.command(name="지급", description="특정 사유로 허니를 지급합니다")
+@app_commands.describe(user="허니를 지급할 사용자", amount="지급할 허니 양", reason="지급 사유")
+async def grant_honey(
+    interaction: discord.Interaction,
+    user: discord.Member,
+    amount: app_commands.Range[int, 1],
+    reason: str,
+):
+    await ensure_user_record(interaction.user, interaction.guild)
+    await ensure_user_record(user, interaction.guild)
+
+    db.add_honey(str(user.id), amount)
+
+    embed = discord.Embed(color=discord.Color.gold())
+    embed.add_field(
+        name="\u200b",
+        value=f"{reason}로 인해 {amount} 허니가 지급됬어요",
+        inline=False,
+    )
+    try:
+        await user.send(embed=embed)
+    except Exception:
+        pass
+
+    await interaction.response.send_message("허니가 지급되었습니다.", ephemeral=True)
+
+
 @adventure_group.command(name="랜덤", description="모험을 진행합니다")
 @app_commands.describe(amount="사용할 허니 양")
 async def adventure_random(
@@ -273,6 +300,7 @@ async def set_adventure_prob(
 bot.tree.add_command(greet_command)
 bot.tree.add_command(join_command)
 bot.tree.add_command(honey_command)
+bot.tree.add_command(grant_honey)
 bot.tree.add_command(honey_group)
 bot.tree.add_command(adventure_group)
 
