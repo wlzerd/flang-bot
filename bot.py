@@ -1,4 +1,5 @@
 import os
+import json
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -8,6 +9,18 @@ load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 
 description = "간단한 디스코드 봇"
+
+DATA_FILE = "users.json"
+
+def load_user_data():
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return {}
+
+def save_user_data(data: dict):
+    with open(DATA_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
 intents = discord.Intents.default()
 
@@ -24,9 +37,29 @@ async def on_ready():
         print(f"Failed to sync commands: {e}")
 
 
-@bot.tree.command(name="커맨드", description="샘플 커맨드")
-async def slash_command(interaction: discord.Interaction):
+cmd_group = app_commands.Group(name="커맨드", description="샘플 커맨드 그룹")
+
+
+@cmd_group.command(name="인사", description="인사 메시지")
+async def greet_command(interaction: discord.Interaction):
     await interaction.response.send_message("안녕하세요!", ephemeral=True)
+
+
+@cmd_group.command(name="가입", description="사용자 정보를 저장합니다")
+async def join_command(interaction: discord.Interaction):
+    user = interaction.user
+    data = load_user_data()
+    data[str(user.id)] = {
+        "name": user.name,
+        "discriminator": user.discriminator,
+    }
+    save_user_data(data)
+    await interaction.response.send_message(
+        f"{user.name}님의 정보가 저장되었습니다.", ephemeral=True
+    )
+
+
+bot.tree.add_command(cmd_group)
 
 if __name__ == "__main__":
     if not TOKEN:
