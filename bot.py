@@ -140,20 +140,21 @@ async def tick_voice_sessions():
 async def on_message(message: discord.Message):
     if message.author.bot:
         return
-    await ensure_user_record(message.author, message.guild)
-    db.add_honey(str(message.author.id), 1)
+    info = db.get_user(str(message.author.id))
+    if info:
+        db.add_honey(str(message.author.id), 1)
     await bot.process_commands(message)
 
 
 @bot.event
 async def on_voice_state_update(member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
     if before.channel is None and after.channel is not None:
-        await ensure_user_record(member, after.channel.guild)
-        voice_sessions[member.id] = VoiceSession(
-            session_id=str(uuid.uuid4()),
-            user_id=str(member.id),
-            last_award=time.time(),
-        )
+        if db.get_user(str(member.id)):
+            voice_sessions[member.id] = VoiceSession(
+                session_id=str(uuid.uuid4()),
+                user_id=str(member.id),
+                last_award=time.time(),
+            )
     elif before.channel is not None and after.channel is None:
         voice_sessions.pop(member.id, None)
 
@@ -249,11 +250,19 @@ async def gift_honey(
     user: discord.Member,
     amount: app_commands.Range[int, 1],
 ):
-    await ensure_user_record(interaction.user, interaction.guild)
-    await ensure_user_record(user, interaction.guild)
-
     sender_id = str(interaction.user.id)
     receiver_id = str(user.id)
+    if not db.get_user(sender_id):
+        await interaction.response.send_message(
+            "먼저 /가입을 해주세요.", ephemeral=True
+        )
+        return
+    if not db.get_user(receiver_id):
+        await interaction.response.send_message(
+            "받는 사용자가 아직 가입하지 않았습니다.", ephemeral=True
+        )
+        return
+
     if sender_id == receiver_id:
         await interaction.response.send_message(
             "자신에게는 허니를 선물할 수 없습니다.", ephemeral=True
@@ -301,8 +310,11 @@ async def grant_honey(
     amount: app_commands.Range[int, 1],
     reason: str,
 ):
-    await ensure_user_record(interaction.user, interaction.guild)
-    await ensure_user_record(user, interaction.guild)
+    if not db.get_user(str(user.id)):
+        await interaction.response.send_message(
+            "해당 사용자가 /가입을 하지 않았습니다.", ephemeral=True
+        )
+        return
 
     db.add_honey(str(user.id), amount)
 
@@ -326,10 +338,14 @@ async def adventure_random(
     interaction: discord.Interaction,
     amount: app_commands.Range[int, 200],
 ):
-    await ensure_user_record(interaction.user, interaction.guild)
-
     user_id = str(interaction.user.id)
     info = db.get_user(user_id)
+    if not info:
+        await interaction.response.send_message(
+            "먼저 /가입을 해주세요.", ephemeral=True
+        )
+        return
+
     if not info or info.get("honey", 0) < amount:
         await interaction.response.send_message("허니가 부족합니다.", ephemeral=True)
         return
@@ -349,7 +365,11 @@ async def adventure_random(
 
 @app_commands.command(name="모험기록", description="최근 모험 기록을 확인합니다")
 async def adventure_logs_command(interaction: discord.Interaction):
-    await ensure_user_record(interaction.user, interaction.guild)
+    if not db.get_user(str(interaction.user.id)):
+        await interaction.response.send_message(
+            "먼저 /가입을 해주세요.", ephemeral=True
+        )
+        return
     logs = db.get_recent_adventure_logs(str(interaction.user.id), 5)
     if not logs:
         await interaction.response.send_message("모험 기록이 없습니다.", ephemeral=True)
@@ -369,7 +389,11 @@ async def adventure_logs_command(interaction: discord.Interaction):
 
 @ranking_group.command(name="주간", description="일주일 동안 획득한 허니 랭킹")
 async def weekly_ranking(interaction: discord.Interaction):
-    await ensure_user_record(interaction.user, interaction.guild)
+    if not db.get_user(str(interaction.user.id)):
+        await interaction.response.send_message(
+            "먼저 /가입을 해주세요.", ephemeral=True
+        )
+        return
     today = datetime.datetime.now()
     start = today - datetime.timedelta(days=today.weekday())
     start = start.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -387,7 +411,11 @@ async def weekly_ranking(interaction: discord.Interaction):
 
 @ranking_group.command(name="월간", description="한 달 동안 획득한 허니 랭킹")
 async def monthly_ranking(interaction: discord.Interaction):
-    await ensure_user_record(interaction.user, interaction.guild)
+    if not db.get_user(str(interaction.user.id)):
+        await interaction.response.send_message(
+            "먼저 /가입을 해주세요.", ephemeral=True
+        )
+        return
     now = datetime.datetime.now()
     start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     if start.month == 12:
@@ -407,7 +435,11 @@ async def monthly_ranking(interaction: discord.Interaction):
 
 @ranking_group.command(name="누적", description="보유 허니 기준 랭킹")
 async def total_ranking(interaction: discord.Interaction):
-    await ensure_user_record(interaction.user, interaction.guild)
+    if not db.get_user(str(interaction.user.id)):
+        await interaction.response.send_message(
+            "먼저 /가입을 해주세요.", ephemeral=True
+        )
+        return
     ranking = db.get_total_ranking()
     embed = discord.Embed(title="누적 허니 랭킹", color=discord.Color.gold())
     if not ranking:
