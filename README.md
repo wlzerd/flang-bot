@@ -41,3 +41,14 @@ user.add_text_chat()
 user.add_voice_chat()
 print(user.get_honey_str())  # '1.5'
 ```
+
+## Docker로 실행하기
+
+docker compose를 사용하면 로컬에 파이썬을 설치하지 않고도 봇을 실행할 수 있습니다. 먼저 `.env` 파일에 `DISCORD_TOKEN`을 설정한 뒤 아래 명령을 실행하세요.
+
+```bash
+docker compose build
+docker compose up
+```
+
+컨테이너는 `users.db` 파일을 호스트와 공유하므로 데이터를 유지한 채 재시작할 수 있습니다.
