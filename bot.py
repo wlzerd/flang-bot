@@ -168,6 +168,10 @@ async def on_ready():
         synced = await bot.tree.sync(guild=discord.Object(id=GUILD_ID))
     except Exception as e:
         print(f"Failed to sync commands: {e}")
+
+    await bot.change_presence(
+        activity=discord.Game(name="🍯 허니 수확")  # 또는 "플로비와 대화 중" 등
+    )
     if not tick_voice_sessions.is_running():
         tick_voice_sessions.start()
 
