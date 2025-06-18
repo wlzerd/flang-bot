@@ -212,13 +212,13 @@ async def honey_command(interaction: discord.Interaction):
     embed = discord.Embed(color=discord.Color.gold())
     display_name = info.get("nick") or info.get("name") or "알수없음"
     discriminator = info.get("discriminator")
-    author_name = display_name if not discriminator else f"{display_name}#{discriminator}"
+    author_name = display_name if not discriminator else f"{display_name}"
     embed.set_author(
         name=author_name,
         icon_url=avatar_url,
     )
     embed.add_field(name="내 허니", value=str(info.get("honey", 0)), inline=True)
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.response.send_message(embed=embed, ephemeral=False)
 
 
 @honey_group.command(name="선물", description="다른 사용자에게 허니를 선물합니다")
@@ -258,7 +258,7 @@ async def gift_honey(
     )
     embed.add_field(
         name="​",
-        value=f"{sender_display}님이 {amount} 허니 만큼 보냈어요!",
+        value=f"{sender_display}님이 {amount}허니를 보냈어요!",
         inline=False,
     )
     try:
@@ -267,7 +267,7 @@ async def gift_honey(
         pass
 
 
-@app_commands.command(name="지급", description="특정 사유로 허니를 지급합니다")
+@app_commands.command(name="지급", description=" 관리자 권한을 가진 사용자만 사용가능합니다. 특정 사유로 허니를 지급합니다")
 @app_commands.checks.has_permissions(administrator=True)
 @app_commands.describe(
     user="허니를 지급할 사용자",
@@ -299,7 +299,7 @@ async def grant_honey(
     await interaction.response.send_message("허니가 지급되었습니다.", ephemeral=True)
 
 
-@adventure_group.command(name="랜덤", description="모험을 진행합니다")
+@adventure_group.command(name="진행", description="모험을 진행합니다")
 @app_commands.describe(amount="사용할 허니 양")
 async def adventure_random(
     interaction: discord.Interaction,
@@ -361,7 +361,7 @@ async def weekly_ranking(interaction: discord.Interaction):
     for idx, row in enumerate(ranking, start=1):
         name = row["nick"] or row["name"]
         embed.add_field(name=f"{idx}위 - {name}", value=f"+{row['earned']}", inline=False)
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.response.send_message(embed=embed, ephemeral=False)
 
 
 @ranking_group.command(name="월간", description="한 달 동안 획득한 허니 랭킹")
@@ -381,7 +381,7 @@ async def monthly_ranking(interaction: discord.Interaction):
     for idx, row in enumerate(ranking, start=1):
         name = row["nick"] or row["name"]
         embed.add_field(name=f"{idx}위 - {name}", value=f"+{row['earned']}", inline=False)
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.response.send_message(embed=embed, ephemeral=False)
 
 
 @ranking_group.command(name="누적", description="보유 허니 기준 랭킹")
@@ -394,10 +394,10 @@ async def total_ranking(interaction: discord.Interaction):
     for idx, row in enumerate(ranking, start=1):
         name = row["nick"] or row["name"]
         embed.add_field(name=f"{idx}위 - {name}", value=str(row['honey']), inline=False)
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.response.send_message(embed=embed, ephemeral=False)
 
 
-@adventure_group.command(name="확률", description="모험 확률을 설정합니다")
+@adventure_group.command(name="확률", description="관리자만 사용가능합니다 모험 확률을 설정합니다")
 @app_commands.checks.has_permissions(administrator=True)
 @app_commands.describe(success="성공 확률", fail="실패 확률", normal="무난한 확률")
 async def set_adventure_prob(
@@ -411,7 +411,7 @@ async def set_adventure_prob(
         await interaction.response.send_message("세 확률의 합은 100이어야 합니다.", ephemeral=True)
         return
     db.set_adventure_probabilities(success, fail, normal)
-    await interaction.response.send_message("모험 확률이 업데이트되었습니다.", ephemeral=True)
+    await interaction.response.send_message("모험 확률이 업데이트되었습니다.", ephemeral=False)
 
 
 bot.tree.add_command(greet_command)
