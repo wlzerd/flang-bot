@@ -59,6 +59,14 @@ def init_db():
         """
     )
     cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS guild_channels (
+            guild_id TEXT PRIMARY KEY,
+            channel_id TEXT NOT NULL
+        )
+        """
+    )
+    cur.execute(
         "INSERT OR IGNORE INTO adventure_probabilities(id, success, fail, normal) VALUES (1, 30, 30, 40)"
     )
     conn.commit()
@@ -271,3 +279,28 @@ def get_total_ranking(limit: int = 10):
         }
         for row in rows
     ]
+
+
+def set_allowed_channel(guild_id: str, channel_id: str | None):
+    """Set or clear the allowed text channel for a guild."""
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    if channel_id is None:
+        cur.execute("DELETE FROM guild_channels WHERE guild_id=?", (guild_id,))
+    else:
+        cur.execute(
+            "INSERT INTO guild_channels(guild_id, channel_id) VALUES (?, ?) "
+            "ON CONFLICT(guild_id) DO UPDATE SET channel_id=excluded.channel_id",
+            (guild_id, channel_id),
+        )
+    conn.commit()
+    conn.close()
+
+
+def get_allowed_channel(guild_id: str) -> str | None:
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute("SELECT channel_id FROM guild_channels WHERE guild_id=?", (guild_id,))
+    row = cur.fetchone()
+    conn.close()
+    return row[0] if row else None
