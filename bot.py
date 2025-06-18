@@ -30,6 +30,23 @@ adventure_group = app_commands.Group(name="모험", description="모험 관련 �
 ranking_group = app_commands.Group(name="랭킹", description="랭킹 관련 명령")
 
 
+@bot.tree.interaction_check
+async def check_allowed_channel(interaction: discord.Interaction) -> bool:
+    """Restrict command usage to the configured channel for the guild."""
+    if interaction.guild is None:
+        return True
+    if interaction.command and interaction.command.name == "채널":
+        return True
+    allowed = db.get_allowed_channel(str(interaction.guild.id))
+    if allowed and interaction.channel_id != int(allowed):
+        if not interaction.response.is_done():
+            await interaction.response.send_message(
+                "이 채널에서는 명령을 사용할 수 없습니다.", ephemeral=True
+            )
+        return False
+    return True
+
+
 @dataclass
 class VoiceSession:
     session_id: str
@@ -414,6 +431,21 @@ async def set_adventure_prob(
     await interaction.response.send_message("모험 확률이 업데이트되었습니다.", ephemeral=False)
 
 
+@app_commands.command(name="채널", description="봇 명령을 허용할 채널을 설정합니다")
+@app_commands.checks.has_permissions(administrator=True)
+@app_commands.describe(channel="명령을 사용할 채널")
+async def set_channel_command(
+    interaction: discord.Interaction, channel: discord.TextChannel
+):
+    if not interaction.guild:
+        await interaction.response.send_message("서버에서만 사용할 수 있습니다.", ephemeral=True)
+        return
+    db.set_allowed_channel(str(interaction.guild.id), str(channel.id))
+    await interaction.response.send_message(
+        f"{channel.mention} 채널에서만 명령을 사용할 수 있습니다.", ephemeral=True
+    )
+
+
 bot.tree.add_command(greet_command)
 bot.tree.add_command(join_command)
 bot.tree.add_command(honey_command)
@@ -421,6 +453,7 @@ bot.tree.add_command(grant_honey)
 bot.tree.add_command(honey_group)
 bot.tree.add_command(adventure_logs_command)
 bot.tree.add_command(adventure_group)
+bot.tree.add_command(set_channel_command)
 bot.tree.add_command(ranking_group)
 
 if __name__ == "__main__":
