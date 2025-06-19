@@ -37,8 +37,8 @@ async def check_allowed_channel(interaction: discord.Interaction) -> bool:
         return True
     if interaction.command and interaction.command.name == "채널":
         return True
-    allowed = db.get_allowed_channel(str(interaction.guild.id))
-    if allowed and interaction.channel_id != int(allowed):
+    allowed = db.get_allowed_channels(str(interaction.guild.id))
+    if allowed and str(interaction.channel_id) not in allowed:
         if not interaction.response.is_done():
             await interaction.response.send_message(
                 "이 채널에서는 명령을 사용할 수 없습니다.", ephemeral=True
@@ -467,7 +467,7 @@ async def set_adventure_prob(
     await interaction.response.send_message("모험 확률이 업데이트되었습니다.", ephemeral=False)
 
 
-@app_commands.command(name="채널", description="봇 명령을 허용할 채널을 설정합니다")
+@app_commands.command(name="채널", description="봇 명령을 허용할 채널을 추가합니다")
 @app_commands.checks.has_permissions(administrator=True)
 @app_commands.describe(channel="명령을 사용할 채널")
 async def set_channel_command(
@@ -476,9 +476,9 @@ async def set_channel_command(
     if not interaction.guild:
         await interaction.response.send_message("서버에서만 사용할 수 있습니다.", ephemeral=True)
         return
-    db.set_allowed_channel(str(interaction.guild.id), str(channel.id))
+    db.add_allowed_channel(str(interaction.guild.id), str(channel.id))
     await interaction.response.send_message(
-        f"{channel.mention} 채널에서만 명령을 사용할 수 있습니다.", ephemeral=True
+        f"{channel.mention} 채널이 명령 허용 목록에 추가되었습니다.", ephemeral=True
     )
 
 
