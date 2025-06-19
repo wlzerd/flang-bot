@@ -61,8 +61,9 @@ def init_db():
     cur.execute(
         """
         CREATE TABLE IF NOT EXISTS guild_channels (
-            guild_id TEXT PRIMARY KEY,
-            channel_id TEXT NOT NULL
+            guild_id TEXT NOT NULL,
+            channel_id TEXT NOT NULL,
+            PRIMARY KEY (guild_id, channel_id)
         )
         """
     )
@@ -281,26 +282,54 @@ def get_total_ranking(limit: int = 10):
     ]
 
 
-def set_allowed_channel(guild_id: str, channel_id: str | None):
-    """Set or clear the allowed text channel for a guild."""
+def add_allowed_channel(guild_id: str, channel_id: str):
+    """Allow using commands in the specified channel."""
     conn = sqlite3.connect(DB_FILE)
     cur = conn.cursor()
-    if channel_id is None:
-        cur.execute("DELETE FROM guild_channels WHERE guild_id=?", (guild_id,))
-    else:
-        cur.execute(
-            "INSERT INTO guild_channels(guild_id, channel_id) VALUES (?, ?) "
-            "ON CONFLICT(guild_id) DO UPDATE SET channel_id=excluded.channel_id",
-            (guild_id, channel_id),
-        )
+    cur.execute(
+        "INSERT OR IGNORE INTO guild_channels(guild_id, channel_id) VALUES (?, ?)",
+        (guild_id, channel_id),
+    )
     conn.commit()
     conn.close()
 
 
-def get_allowed_channel(guild_id: str) -> str | None:
+def remove_allowed_channel(guild_id: str, channel_id: str):
+    """Remove a channel from the allowed list for the guild."""
     conn = sqlite3.connect(DB_FILE)
     cur = conn.cursor()
-    cur.execute("SELECT channel_id FROM guild_channels WHERE guild_id=?", (guild_id,))
-    row = cur.fetchone()
+    cur.execute(
+        "DELETE FROM guild_channels WHERE guild_id=? AND channel_id=?",
+        (guild_id, channel_id),
+    )
+    conn.commit()
     conn.close()
-    return row[0] if row else None
+
+
+def get_allowed_channels(guild_id: str) -> list[str]:
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT channel_id FROM guild_channels WHERE guild_id=?",
+        (guild_id,),
+    )
+    rows = cur.fetchall()
+    conn.close()
+    return [row[0] for row in rows]
+
+
+def set_allowed_channel(guild_id: str, channel_id: str | None):
+    """Backward compatible helper to set a single allowed channel."""
+    if channel_id is None:
+        conn = sqlite3.connect(DB_FILE)
+        cur = conn.cursor()
+        cur.execute("DELETE FROM guild_channels WHERE guild_id=?", (guild_id,))
+        conn.commit()
+        conn.close()
+    else:
+        add_allowed_channel(guild_id, channel_id)
+
+
+def get_allowed_channel(guild_id: str) -> str | None:
+    channels = get_allowed_channels(guild_id)
+    return channels[0] if channels else None
