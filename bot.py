@@ -337,29 +337,18 @@ async def grant_honey(
 
 
 
-@adventure_group.command(name="새싹들판", description="1레벨 모험을 진행합니다")
-async def adventure_lv1(interaction: discord.Interaction):
-    await run_adventure(interaction, ADVENTURE_LEVELS[0])
-
-
-@adventure_group.command(name="튤립정원", description="2레벨 모험을 진행합니다")
-async def adventure_lv2(interaction: discord.Interaction):
-    await run_adventure(interaction, ADVENTURE_LEVELS[1])
-
-
-@adventure_group.command(name="라벤더숲", description="3레벨 모험을 진행합니다")
-async def adventure_lv3(interaction: discord.Interaction):
-    await run_adventure(interaction, ADVENTURE_LEVELS[2])
-
-
-@adventure_group.command(name="가시덤불", description="4레벨 모험을 진행합니다")
-async def adventure_lv4(interaction: discord.Interaction):
-    await run_adventure(interaction, ADVENTURE_LEVELS[3])
-
-
-@adventure_group.command(name="여왕벌궁", description="5레벨 모험을 진행합니다")
-async def adventure_lv5(interaction: discord.Interaction):
-    await run_adventure(interaction, ADVENTURE_LEVELS[4])
+@adventure_group.command(name="모험", description="레벨을 선택해 모험을 진행합니다")
+@app_commands.describe(level="도전할 모험 레벨")
+@app_commands.choices(
+    level=[
+        app_commands.Choice(name=lv["name"], value=i)
+        for i, lv in enumerate(ADVENTURE_LEVELS)
+    ]
+)
+async def adventure(
+    interaction: discord.Interaction, level: app_commands.Choice[int]
+):
+    await run_adventure(interaction, ADVENTURE_LEVELS[level.value])
 
 
 
