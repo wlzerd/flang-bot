@@ -4,6 +4,7 @@ import uuid
 from dataclasses import dataclass
 import random
 import datetime
+import asyncio
 
 import discord
 from discord import app_commands
@@ -35,6 +36,15 @@ adventure_group = app_commands.Group(name="모험", description="모험 관련 �
 # 랭킹 명령 그룹
 ranking_group = app_commands.Group(name="랭킹", description="랭킹 관련 명령")
 
+# Adventure level settings
+ADVENTURE_LEVELS = [
+    {"name": "새싹들판", "success": 90, "reward": 100, "banner": "banner/Lv1.gif"},
+    {"name": "튤립정원", "success": 75, "reward": 300, "banner": "banner/Lv2.gif"},
+    {"name": "라벤더숲", "success": 60, "reward": 500, "banner": "banner/Lv3.gif"},
+    {"name": "가시덤불", "success": 45, "reward": 700, "banner": "banner/Lv4.gif"},
+    {"name": "여왕벌궁", "success": 25, "reward": 1000, "banner": "banner/Lv5.gif"},
+]
+
 
 @bot.tree.interaction_check
 async def check_allowed_channel(interaction: discord.Interaction) -> bool:
@@ -63,47 +73,35 @@ class VoiceSession:
 voice_sessions: dict[int, VoiceSession] = {}
 
 
-class AdventureConfirmView(discord.ui.View):
-    def __init__(self, user_id: int, amount: int, success_p: float, fail_p: float, normal_p: float):
-        super().__init__(timeout=60)
-        self.user_id = user_id
-        self.amount = amount
-        self.success_p = success_p
-        self.fail_p = fail_p
-        self.normal_p = normal_p
+async def run_adventure(interaction: discord.Interaction, level: dict):
+    """Handle adventure logic for a given level."""
+    user_id = str(interaction.user.id)
+    if not db.get_user(user_id):
+        await interaction.response.send_message("먼저 /가입을 해주세요.", ephemeral=True)
+        return
 
-    @discord.ui.button(label="진행하기", style=discord.ButtonStyle.primary)
-    async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if interaction.user.id != self.user_id:
-            await interaction.response.send_message("이 모험을 시작할 권한이 없습니다.", ephemeral=True)
-            return
-        info = db.get_user(str(self.user_id))
-        if not info or info.get("honey", 0) < self.amount:
-            await interaction.response.send_message("허니가 부족합니다.", ephemeral=True)
-            return
-        db.add_honey(str(self.user_id), -self.amount)
-        roll = random.random() * 100
-        if roll < self.success_p:
-            db.add_honey(str(self.user_id), self.amount * 2)
-            result_msg = f"모험에 성공했습니다! {self.amount * 2} 허니를 받았습니다."
-            db.add_adventure_log(str(self.user_id), "성공", self.amount, self.amount)
-        elif roll < self.success_p + self.fail_p:
-            result_msg = f"모험에 실패했습니다... {self.amount} 허니를 잃었습니다."
-            db.add_adventure_log(str(self.user_id), "실패", self.amount, -self.amount)
-        else:
-            db.add_honey(str(self.user_id), self.amount)
-            result_msg = f"무난히 끝났습니다. {self.amount} 허니를 돌려받았습니다."
-            db.add_adventure_log(str(self.user_id), "무난", self.amount, 0)
-        await interaction.response.edit_message(content=result_msg, embed=None, view=None)
-        self.stop()
+    embed = discord.Embed(
+        title=f"{level['name']} 모험 결과 ⸝⸝",
+        description="플로비가 나비를 따라가다 길을 잃어버리면서 . .",
+        color=discord.Color.gold(),
+    )
+    file_name = os.path.basename(level["banner"])
+    file = discord.File(level["banner"], filename=file_name)
+    embed.set_image(url=f"attachment://{file_name}")
+    await interaction.response.send_message(embed=embed, file=file)
 
-    @discord.ui.button(label="취소하기", style=discord.ButtonStyle.secondary)
-    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if interaction.user.id != self.user_id:
-            await interaction.response.send_message("취소할 권한이 없습니다.", ephemeral=True)
-            return
-        await interaction.response.edit_message(content="모험이 취소되었습니다.", embed=None, view=None)
-        self.stop()
+    await asyncio.sleep(10)
+    success = random.random() * 100 < level["success"]
+    if success:
+        db.add_honey(user_id, level["reward"])
+        db.add_adventure_log(user_id, "성공", level["reward"], level["reward"])
+        result_text = f"모험성공!\n{level['reward']} 허니를 얻었어요"
+    else:
+        db.add_adventure_log(user_id, "실패", level["reward"], 0)
+        result_text = "모험실패!"
+
+    result_embed = discord.Embed(description=result_text, color=discord.Color.gold())
+    await interaction.edit_original_response(embed=result_embed, attachments=[])
 
 
 async def ensure_user_record(user: discord.abc.User, guild: discord.Guild | None = None):
@@ -338,35 +336,32 @@ async def grant_honey(
     await interaction.response.send_message("허니가 지급되었습니다.", ephemeral=True)
 
 
-@adventure_group.command(name="진행", description="모험을 진행합니다")
-@app_commands.describe(amount="사용할 허니 양")
-async def adventure_random(
-    interaction: discord.Interaction,
-    amount: app_commands.Range[int, 200],
-):
-    user_id = str(interaction.user.id)
-    info = db.get_user(user_id)
-    if not info:
-        await interaction.response.send_message(
-            "먼저 /가입을 해주세요.", ephemeral=True
-        )
-        return
 
-    if not info or info.get("honey", 0) < amount:
-        await interaction.response.send_message("허니가 부족합니다.", ephemeral=True)
-        return
+@adventure_group.command(name="새싹들판", description="1레벨 모험을 진행합니다")
+async def adventure_lv1(interaction: discord.Interaction):
+    await run_adventure(interaction, ADVENTURE_LEVELS[0])
 
-    success_p, fail_p, normal_p = db.get_adventure_probabilities()
 
-    embed = discord.Embed(title="모험 확률", color=discord.Color.gold())
-    embed.add_field(name="성공", value=f"{success_p}%", inline=True)
-    embed.add_field(name="실패", value=f"{fail_p}%", inline=True)
-    embed.add_field(name="무난", value=f"{normal_p}%", inline=True)
-    embed.set_footer(text=f"{amount} 허니를 사용합니다.")
+@adventure_group.command(name="튤립정원", description="2레벨 모험을 진행합니다")
+async def adventure_lv2(interaction: discord.Interaction):
+    await run_adventure(interaction, ADVENTURE_LEVELS[1])
 
-    view = AdventureConfirmView(interaction.user.id, amount, success_p, fail_p, normal_p)
 
-    await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+@adventure_group.command(name="라벤더숲", description="3레벨 모험을 진행합니다")
+async def adventure_lv3(interaction: discord.Interaction):
+    await run_adventure(interaction, ADVENTURE_LEVELS[2])
+
+
+@adventure_group.command(name="가시덤불", description="4레벨 모험을 진행합니다")
+async def adventure_lv4(interaction: discord.Interaction):
+    await run_adventure(interaction, ADVENTURE_LEVELS[3])
+
+
+@adventure_group.command(name="여왕벌궁", description="5레벨 모험을 진행합니다")
+async def adventure_lv5(interaction: discord.Interaction):
+    await run_adventure(interaction, ADVENTURE_LEVELS[4])
+
+
 
 
 @app_commands.command(name="모험기록", description="최근 모험 기록을 확인합니다")
