@@ -245,7 +245,7 @@ async def honey_command(interaction: discord.Interaction):
         name=author_name,
         icon_url=avatar_url,
     )
-    embed.add_field(name="내 허니", value=str(info.get("honey", 0)), inline=True)
+    embed.add_field(name="\u200b", value=f"[{str(info.get('honey', 0))}] 허니를 보유하고 있습니다!", inline=True)
     await interaction.response.send_message(embed=embed, ephemeral=False)
 
 
