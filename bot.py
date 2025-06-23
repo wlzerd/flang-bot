@@ -36,11 +36,46 @@ ranking_group = app_commands.Group(name="랭킹", description="랭킹 관련 명
 
 # Adventure level settings
 ADVENTURE_LEVELS = [
-    {"name": "새싹들판", "success": 90, "reward": 100, "banner": "banner/Lv1.gif"},
-    {"name": "튤립정원", "success": 75, "reward": 300, "banner": "banner/Lv2.gif"},
-    {"name": "라벤더숲", "success": 60, "reward": 500, "banner": "banner/Lv3.gif"},
-    {"name": "가시덤불", "success": 45, "reward": 700, "banner": "banner/Lv4.gif"},
-    {"name": "여왕벌궁", "success": 25, "reward": 1000, "banner": "banner/Lv5.gif"},
+    {
+        "name": "새싹들판",
+        "success": 90,
+        "reward": 100,
+        "banner": "banner/Lv1.gif",
+        "success_desc": "플로비가 부드러운 바람을 따라 들판을 누비다가 . . .",
+        "fail_desc": "플로비가 나비를 따라가다 길을 잃어버리면서 . . .",
+    },
+    {
+        "name": "튤립정원",
+        "success": 75,
+        "reward": 300,
+        "banner": "banner/Lv2.gif",
+        "success_desc": "플로비가 알록달록한 튤립 사이를 누비다가 . . .",
+        "fail_desc": "플로비가 튤립 속에 숨은 벌레를 보고 깜짝 놀라 . . .",
+    },
+    {
+        "name": "라벤더숲",
+        "success": 60,
+        "reward": 500,
+        "banner": "banner/Lv3.gif",
+        "success_desc": "플로비가 보라빛 향기에 이끌려 숲을 탐험하다가 . . .",
+        "fail_desc": "플로비가 숲속 깊이 들어갔다가 길을 잃고 . . .",
+    },
+    {
+        "name": "가시덤불",
+        "success": 45,
+        "reward": 700,
+        "banner": "banner/Lv4.gif",
+        "success_desc": "플로비가 가시 사이를 날아다니며 꿀을 찾고 . . .",
+        "fail_desc": "플로비가 가시에 찔릴 뻔해서 황급히 도망치다가 . . .",
+    },
+    {
+        "name": "여왕벌궁",
+        "success": 25,
+        "reward": 1000,
+        "banner": "banner/Lv5.gif",
+        "success_desc": "플로비가 여왕벌의 눈을 피해 궁을 탐험하다 . . .",
+        "fail_desc": "플로비가 경비벌 에게 들켜 도망치다 . . .",
+    },
 ]
 
 
@@ -78,28 +113,36 @@ async def run_adventure(interaction: discord.Interaction, level: dict):
         await interaction.response.send_message("먼저 /가입을 해주세요.", ephemeral=True)
         return
 
-    embed = discord.Embed(
+    start_embed = discord.Embed(
         title=f"{level['name']} 모험 결과 ⸝⸝",
-        description="플로비가 나비를 따라가다 길을 잃어버리면서 . .",
+        description="플로비가 모험을 준비 중입니다 . . .",
         color=discord.Color.gold(),
     )
     file_name = os.path.basename(level["banner"])
     file = discord.File(level["banner"], filename=file_name)
-    embed.set_image(url=f"attachment://{file_name}")
-    await interaction.response.send_message(embed=embed, file=file)
+    start_embed.set_image(url=f"attachment://{file_name}")
+    await interaction.response.send_message(embed=start_embed, file=file)
 
     await asyncio.sleep(10)
     success = random.random() * 100 < level["success"]
     if success:
         db.add_honey(user_id, level["reward"])
         db.add_adventure_log(user_id, "성공", level["reward"], level["reward"])
+        desc = level.get("success_desc", "")
         result_text = f"모험성공!\n{level['reward']} 허니를 얻었어요"
     else:
         db.add_adventure_log(user_id, "실패", level["reward"], 0)
+        desc = level.get("fail_desc", "")
         result_text = "모험실패!"
 
-    result_embed = discord.Embed(description=result_text, color=discord.Color.gold())
-    await interaction.edit_original_response(embed=result_embed, attachments=[])
+    result_embed = discord.Embed(
+        title=f"{level['name']} 모험 결과 ⸝⸝",
+        description=f"{desc}\n{result_text}",
+        color=discord.Color.gold(),
+    )
+    result_file = discord.File(level["banner"], filename=file_name)
+    result_embed.set_image(url=f"attachment://{file_name}")
+    await interaction.edit_original_response(embed=result_embed, attachments=[result_file])
 
 
 async def ensure_user_record(user: discord.abc.User, guild: discord.Guild | None = None):
