@@ -125,14 +125,24 @@ async def run_adventure(interaction: discord.Interaction, level: dict):
 
     await asyncio.sleep(10)
     success = random.random() * 100 < level["success"]
+    desc = level.get("success_desc" if success else "fail_desc", "")
+
+    desc_embed = discord.Embed(
+        title=f"{level['name']} 모험 결과 ⸝⸝",
+        description=desc,
+        color=discord.Color.gold(),
+    )
+    desc_file = discord.File(level["banner"], filename=file_name)
+    desc_embed.set_image(url=f"attachment://{file_name}")
+    await interaction.edit_original_response(embed=desc_embed, attachments=[desc_file])
+
+    await asyncio.sleep(10)
     if success:
         db.add_honey(user_id, level["reward"])
         db.add_adventure_log(user_id, "성공", level["reward"], level["reward"])
-        desc = level.get("success_desc", "")
         result_text = f"**모험성공**!\n{level['reward']} 허니를 얻었어요"
     else:
         db.add_adventure_log(user_id, "실패", level["reward"], 0)
-        desc = level.get("fail_desc", "")
         result_text = "**모험실패**!"
 
     result_embed = discord.Embed(
