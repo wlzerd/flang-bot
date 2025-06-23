@@ -13,6 +13,12 @@ from dotenv import load_dotenv
 import db
 
 load_dotenv()
+# Set timezone to Korea Standard Time
+os.environ["TZ"] = "Asia/Seoul"
+try:
+    time.tzset()
+except AttributeError:
+    pass
 TOKEN = os.getenv('DISCORD_TOKEN')
 
 description = "간단한 디스코드 봇"
