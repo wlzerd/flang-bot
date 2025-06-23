@@ -31,8 +31,6 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 # 허니 모임 위한 그룹
 honey_group = app_commands.Group(name="허니", description="허니 관련 명령")
-# 모험 명령 그룹
-adventure_group = app_commands.Group(name="모험", description="모험 관련 명령")
 # 랭킹 명령 그룹
 ranking_group = app_commands.Group(name="랭킹", description="랭킹 관련 명령")
 
@@ -337,7 +335,7 @@ async def grant_honey(
 
 
 
-@adventure_group.command(name="모험", description="레벨을 선택해 모험을 진행합니다")
+@app_commands.command(name="모험", description="레벨을 선택해 모험을 진행합니다")
 @app_commands.describe(level="도전할 모험 레벨")
 @app_commands.choices(
     level=[
@@ -440,7 +438,7 @@ async def total_ranking(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=False)
 
 
-@adventure_group.command(name="확률", description="관리자만 사용가능합니다 모험 확률을 설정합니다")
+@app_commands.command(name="모험확률", description="관리자만 사용가능합니다 모험 확률을 설정합니다")
 @app_commands.checks.has_permissions(administrator=True)
 @app_commands.describe(success="성공 확률", fail="실패 확률", normal="무난한 확률")
 async def set_adventure_prob(
@@ -478,7 +476,8 @@ bot.tree.add_command(honey_command)
 bot.tree.add_command(grant_honey)
 bot.tree.add_command(honey_group)
 bot.tree.add_command(adventure_logs_command)
-bot.tree.add_command(adventure_group)
+bot.tree.add_command(adventure)
+bot.tree.add_command(set_adventure_prob)
 bot.tree.add_command(set_channel_command)
 bot.tree.add_command(ranking_group)
 
