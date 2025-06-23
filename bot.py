@@ -129,11 +129,11 @@ async def run_adventure(interaction: discord.Interaction, level: dict):
         db.add_honey(user_id, level["reward"])
         db.add_adventure_log(user_id, "성공", level["reward"], level["reward"])
         desc = level.get("success_desc", "")
-        result_text = f"모험성공!\n{level['reward']} 허니를 얻었어요"
+        result_text = f"**모험성공**!\n{level['reward']} 허니를 얻었어요"
     else:
         db.add_adventure_log(user_id, "실패", level["reward"], 0)
         desc = level.get("fail_desc", "")
-        result_text = "모험실패!"
+        result_text = "**모험실패**!"
 
     result_embed = discord.Embed(
         title=f"{level['name']} 모험 결과 ⸝⸝",
