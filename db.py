@@ -40,6 +40,14 @@ def init_db():
         )
         """
     )
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS adventure_cooldowns (
+            user_id TEXT PRIMARY KEY,
+            cooldown_until INTEGER NOT NULL DEFAULT 0
+        )
+        """
+    )
     cur.execute("PRAGMA table_info(users)")
     columns = [row[1] for row in cur.fetchall()]
     if "avatar_url" not in columns:
@@ -328,6 +336,32 @@ def set_allowed_channel(guild_id: str, channel_id: str | None):
         conn.close()
     else:
         add_allowed_channel(guild_id, channel_id)
+
+
+def get_adventure_cooldown(user_id: str) -> int:
+    """Return the timestamp when the user can adventure again."""
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT cooldown_until FROM adventure_cooldowns WHERE user_id=?",
+        (user_id,),
+    )
+    row = cur.fetchone()
+    conn.close()
+    if row:
+        return row[0]
+    return 0
+
+
+def set_adventure_cooldown(user_id: str, cooldown_until: int):
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute(
+        "REPLACE INTO adventure_cooldowns(user_id, cooldown_until) VALUES (?, ?)",
+        (user_id, cooldown_until),
+    )
+    conn.commit()
+    conn.close()
 
 
 def get_allowed_channel(guild_id: str) -> str | None:
