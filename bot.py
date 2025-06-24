@@ -112,6 +112,18 @@ async def run_adventure(interaction: discord.Interaction, level: dict):
     if not db.get_user(user_id):
         await interaction.response.send_message("먼저 /가입을 해주세요.", ephemeral=True)
         return
+    cooldown_until = db.get_adventure_cooldown(user_id)
+    now = int(time.time())
+    if cooldown_until > now:
+        remaining = cooldown_until - now
+        minutes, seconds = divmod(remaining, 60)
+        cooldown_str = f"{minutes}분 {seconds}초"
+        embed = discord.Embed(
+            description=f"{cooldown_str} 뒤에 사용할 수 있어요",
+            color=discord.Color.gold(),
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
 
     start_embed = discord.Embed(
         description=f"## <a:emoji_146:1372097429834432532> {level['name']} 모험 준비중 ⸝⸝ \n> 플로비가 모험을 준비 중입니다 . . .",
@@ -150,6 +162,8 @@ async def run_adventure(interaction: discord.Interaction, level: dict):
     result_file = discord.File(level["banner"], filename=file_name)
     result_embed.set_image(url=f"attachment://{file_name}")
     await interaction.edit_original_response(embed=result_embed, attachments=[result_file])
+    cooldown_seconds = 180 if success else 1800
+    db.set_adventure_cooldown(user_id, int(time.time()) + cooldown_seconds)
 
 
 async def ensure_user_record(user: discord.abc.User, guild: discord.Guild | None = None):
