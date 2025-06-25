@@ -86,6 +86,7 @@ FLOWER_ITEMS = [
         "weight": 60,
         "effect": "honey_plus",
         "value": 10,
+        "description": "허니 10 획득",
     },
     {
         "name": "민들레",
@@ -93,69 +94,71 @@ FLOWER_ITEMS = [
         "weight": 60,
         "effect": "adventure_success_bonus",
         "value": 5,
+        "description": "다음 모험 성공 확률 5% 증가",
     },
     {
         "name": "코스모스",
         "rarity": "커먼",
         "weight": 60,
         "effect": "chat_double",
-        "duration": 1800,
+        "description": "채팅 허니 두 배",
     },
     {
         "name": "튤립",
         "rarity": "에픽",
         "weight": 25,
         "effect": "voice_double",
-        "duration": 3600,
+        "description": "음성 채팅 허니 두 배",
     },
     {
         "name": "장미",
         "rarity": "에픽",
         "weight": 25,
         "effect": "gift_bonus",
-        "duration": 3600,
+        "description": "선물 시 10% 추가 지급",
     },
     {
         "name": "해바라기",
         "rarity": "에픽",
         "weight": 25,
         "effect": "cooldown_half",
-        "duration": 3600,
+        "description": "모험 대기 시간 절반",
     },
     {
         "name": "라벤더",
         "rarity": "레어",
         "weight": 10,
         "effect": "adventure_reward_bonus",
-        "duration": 86400,
         "value": 0.5,
+        "description": "모험 보상 50% 증가",
     },
     {
         "name": "수국",
         "rarity": "레어",
         "weight": 10,
         "effect": "free_adventure",
-        "duration": 86400,
+        "description": "다음 모험 쿨타임 제거",
     },
     {
         "name": "동백꽃",
         "rarity": "레어",
         "weight": 10,
         "effect": "gift_cashback",
-        "duration": 3600,
+        "description": "선물한 허니 캐시백",
     },
     {
         "name": "벚꽃",
         "rarity": "전설",
         "weight": 5,
         "effect": "all_honey_double",
-        "duration": 86400,
+        "description": "모든 허니 획득량 두 배",
     },
     {
         "name": "달맞이꽃",
         "rarity": "전설",
         "weight": 5,
         "effect": "adventure_auto_success",
+        "description": "최고 레벨 모험 즉시 성공",
     },
     {
         "name": "별꽃",
@@ -163,6 +166,7 @@ FLOWER_ITEMS = [
         "weight": 5,
         "effect": "honey_plus",
         "value": 500,
+        "description": "허니 500 획득",
     },
 ]
 
@@ -200,8 +204,11 @@ def get_effect_map(user_id: str) -> dict[str, dict]:
 
 
 def apply_flower_effect(user_id: str, item: dict) -> str:
-    now = int(time.time())
     effect = item.get("effect")
+    effects = get_effect_map(user_id)
+    if effect != "honey_plus" and effect in effects:
+        return f"{item['name']} 효과가 이미 적용 중입니다!"
+
     if effect == "honey_plus":
         db.add_honey(user_id, item.get("value", 0))
         return f"{item['name']}을(를) 얻어 {item.get('value', 0)} 허니를 획득했습니다!"
@@ -210,8 +217,11 @@ def apply_flower_effect(user_id: str, item: dict) -> str:
         db.add_honey(user_id, level["reward"])
         db.add_adventure_log(user_id, "성공", level["reward"], level["reward"])
         return f"{item['name']}의 힘으로 {level['name']} 모험을 성공해 {level['reward']} 허니를 얻었습니다!"
-    db.add_effect(user_id, effect, 0, {"value": item.get("value")})
-    return f"{item['name']} 효과가 영구적으로 적용됩니다!"
+
+    data = {"value": item.get("value"), "item_name": item.get("name")}
+    db.add_effect(user_id, effect, 0, data)
+    detail = f"({item.get('description')})" if item.get("description") else ""
+    return f"{item['name']} 효과{detail}가 영구적으로 적용됩니다!"
 
 
 async def run_adventure(interaction: discord.Interaction, level: dict):
