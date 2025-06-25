@@ -1,4 +1,6 @@
 import sqlite3
+import json
+import time
 
 DB_FILE = "users.db"
 
@@ -72,6 +74,17 @@ def init_db():
             guild_id TEXT NOT NULL,
             channel_id TEXT NOT NULL,
             PRIMARY KEY (guild_id, channel_id)
+        )
+        """
+    )
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS user_effects (
+            user_id TEXT NOT NULL,
+            effect TEXT NOT NULL,
+            expires_at INTEGER NOT NULL,
+            data TEXT,
+            PRIMARY KEY (user_id, effect)
         )
         """
     )
@@ -367,3 +380,52 @@ def set_adventure_cooldown(user_id: str, cooldown_until: int):
 def get_allowed_channel(guild_id: str) -> str | None:
     channels = get_allowed_channels(guild_id)
     return channels[0] if channels else None
+
+
+def add_effect(user_id: str, effect: str, expires_at: int, data: dict | None = None):
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute(
+        "REPLACE INTO user_effects(user_id, effect, expires_at, data) VALUES (?, ?, ?, ?)",
+        (
+            user_id,
+            effect,
+            expires_at,
+            json.dumps(data) if data is not None else None,
+        ),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_active_effects(user_id: str) -> list[dict]:
+    now = int(time.time())
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute("DELETE FROM user_effects WHERE expires_at <= ?", (now,))
+    conn.commit()
+    cur.execute(
+        "SELECT effect, expires_at, data FROM user_effects WHERE user_id=?",
+        (user_id,),
+    )
+    rows = cur.fetchall()
+    conn.close()
+    results = []
+    for effect, exp, data in rows:
+        results.append({
+            "effect": effect,
+            "expires_at": exp,
+            "data": json.loads(data) if data else None,
+        })
+    return results
+
+
+def remove_effect(user_id: str, effect: str):
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute(
+        "DELETE FROM user_effects WHERE user_id=? AND effect=?",
+        (user_id, effect),
+    )
+    conn.commit()
+    conn.close()

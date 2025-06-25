@@ -78,6 +78,94 @@ ADVENTURE_LEVELS = [
     },
 ]
 
+# Flower gacha items
+FLOWER_ITEMS = [
+    {
+        "name": "데이지",
+        "rarity": "커먼",
+        "weight": 60,
+        "effect": "honey_plus",
+        "value": 10,
+    },
+    {
+        "name": "민들레",
+        "rarity": "커먼",
+        "weight": 60,
+        "effect": "adventure_success_bonus",
+        "value": 5,
+    },
+    {
+        "name": "코스모스",
+        "rarity": "커먼",
+        "weight": 60,
+        "effect": "chat_double",
+        "duration": 1800,
+    },
+    {
+        "name": "튤립",
+        "rarity": "에픽",
+        "weight": 25,
+        "effect": "voice_double",
+        "duration": 3600,
+    },
+    {
+        "name": "장미",
+        "rarity": "에픽",
+        "weight": 25,
+        "effect": "gift_bonus",
+        "duration": 3600,
+    },
+    {
+        "name": "해바라기",
+        "rarity": "에픽",
+        "weight": 25,
+        "effect": "cooldown_half",
+        "duration": 3600,
+    },
+    {
+        "name": "라벤더",
+        "rarity": "레어",
+        "weight": 10,
+        "effect": "adventure_reward_bonus",
+        "duration": 86400,
+        "value": 0.5,
+    },
+    {
+        "name": "수국",
+        "rarity": "레어",
+        "weight": 10,
+        "effect": "free_adventure",
+        "duration": 86400,
+    },
+    {
+        "name": "동백꽃",
+        "rarity": "레어",
+        "weight": 10,
+        "effect": "gift_cashback",
+        "duration": 3600,
+    },
+    {
+        "name": "벚꽃",
+        "rarity": "전설",
+        "weight": 5,
+        "effect": "all_honey_double",
+        "duration": 86400,
+    },
+    {
+        "name": "달맞이꽃",
+        "rarity": "전설",
+        "weight": 5,
+        "effect": "adventure_auto_success",
+    },
+    {
+        "name": "별꽃",
+        "rarity": "전설",
+        "weight": 5,
+        "effect": "honey_plus",
+        "value": 500,
+    },
+]
+
 
 @bot.tree.interaction_check
 async def check_allowed_channel(interaction: discord.Interaction) -> bool:
@@ -106,14 +194,39 @@ class VoiceSession:
 voice_sessions: dict[int, VoiceSession] = {}
 
 
+def get_effect_map(user_id: str) -> dict[str, dict]:
+    effects = db.get_active_effects(user_id)
+    return {e["effect"]: e for e in effects}
+
+
+def apply_flower_effect(user_id: str, item: dict) -> str:
+    now = int(time.time())
+    effect = item.get("effect")
+    if effect == "honey_plus":
+        db.add_honey(user_id, item.get("value", 0))
+        return f"{item['name']}을(를) 얻어 {item.get('value', 0)} 허니를 획득했습니다!"
+    if effect == "adventure_auto_success":
+        level = ADVENTURE_LEVELS[-1]
+        db.add_honey(user_id, level["reward"])
+        db.add_adventure_log(user_id, "성공", level["reward"], level["reward"])
+        return f"{item['name']}의 힘으로 {level['name']} 모험을 성공해 {level['reward']} 허니를 얻었습니다!"
+    expires = now + item.get("duration", 0)
+    db.add_effect(user_id, effect, expires, {"value": item.get("value")})
+    return f"{item['name']} 효과가 {item.get('duration',0)//60}분 동안 적용됩니다!"
+
+
 async def run_adventure(interaction: discord.Interaction, level: dict):
     """Handle adventure logic for a given level."""
     user_id = str(interaction.user.id)
     if not db.get_user(user_id):
         await interaction.response.send_message("먼저 /가입을 해주세요.", ephemeral=True)
         return
+    effects = get_effect_map(user_id)
     cooldown_until = db.get_adventure_cooldown(user_id)
     now = int(time.time())
+    if "free_adventure" in effects:
+        db.remove_effect(user_id, "free_adventure")
+        cooldown_until = now
     if cooldown_until > now:
         remaining = cooldown_until - now
         minutes, seconds = divmod(remaining, 60)
@@ -135,7 +248,10 @@ async def run_adventure(interaction: discord.Interaction, level: dict):
     await interaction.response.send_message(embed=start_embed, file=file)
 
     await asyncio.sleep(10)
-    success = random.random() * 100 < level["success"]
+    bonus = effects.get("adventure_success_bonus", {}).get("data", {}).get("value", 0)
+    success = random.random() * 100 < (level["success"] + bonus)
+    if "adventure_success_bonus" in effects:
+        db.remove_effect(user_id, "adventure_success_bonus")
     desc = level.get("success_desc" if success else "fail_desc", "")
 
     desc_embed = discord.Embed(
@@ -147,10 +263,14 @@ async def run_adventure(interaction: discord.Interaction, level: dict):
     await interaction.edit_original_response(embed=desc_embed, attachments=[desc_file])
 
     await asyncio.sleep(10)
+    reward = level["reward"]
+    reward_bonus = effects.get("adventure_reward_bonus", {}).get("data", {}).get("value", 0)
+    if reward_bonus:
+        reward = int(reward * (1 + reward_bonus))
     if success:
-        db.add_honey(user_id, level["reward"])
-        db.add_adventure_log(user_id, "성공", level["reward"], level["reward"])
-        result_text = f"## <a:emoji_85:1363445329483006132>**모험성공**! \n> {level['reward']} 허니를 얻었어요"
+        db.add_honey(user_id, reward)
+        db.add_adventure_log(user_id, "성공", reward, reward)
+        result_text = f"## <a:emoji_85:1363445329483006132>**모험성공**! \n> {reward} 허니를 얻었어요"
     else:
         db.add_adventure_log(user_id, "실패", level["reward"], 0)
         result_text = "**모험실패**!"
@@ -163,6 +283,8 @@ async def run_adventure(interaction: discord.Interaction, level: dict):
     result_embed.set_image(url=f"attachment://{file_name}")
     await interaction.edit_original_response(embed=result_embed, attachments=[result_file])
     cooldown_seconds = 180 if success else 1800
+    if "cooldown_half" in effects:
+        cooldown_seconds = cooldown_seconds // 2
     db.set_adventure_cooldown(user_id, int(time.time()) + cooldown_seconds)
 
 
@@ -198,7 +320,13 @@ async def tick_voice_sessions():
     """Award honey to users connected to voice channels."""
     now = time.time()
     for session in list(voice_sessions.values()):
-        db.add_honey(session.user_id, 0.5)
+        effects = get_effect_map(session.user_id)
+        mult = 1
+        if "voice_double" in effects:
+            mult *= 2
+        if "all_honey_double" in effects:
+            mult *= 2
+        db.add_honey(session.user_id, 0.5 * mult)
         session.last_award = now
 
 
@@ -208,7 +336,13 @@ async def on_message(message: discord.Message):
         return
     info = db.get_user(str(message.author.id))
     if info:
-        db.add_honey(str(message.author.id), 1)
+        effects = get_effect_map(str(message.author.id))
+        mult = 1
+        if "chat_double" in effects:
+            mult *= 2
+        if "all_honey_double" in effects:
+            mult *= 2
+        db.add_honey(str(message.author.id), mult)
     await bot.process_commands(message)
 
 
@@ -341,6 +475,13 @@ async def gift_honey(
             "허니가 부족합니다.", ephemeral=True
         )
         return
+
+    sender_effects = get_effect_map(sender_id)
+    if "gift_bonus" in sender_effects:
+        bonus = int(amount * 0.1)
+        db.add_honey(receiver_id, bonus)
+    if "gift_cashback" in sender_effects:
+        db.add_honey(sender_id, amount)
 
     await interaction.response.send_message(
         f"{user.mention}에게 {amount} 허니를 선물했습니다!",
@@ -502,6 +643,30 @@ async def total_ranking(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=False)
 
 
+@app_commands.command(name="꽃뽑기", description="꽃 아이템을 뽑습니다")
+async def flower_gacha(interaction: discord.Interaction):
+    user_id = str(interaction.user.id)
+    info = db.get_user(user_id)
+    if not info:
+        await interaction.response.send_message("먼저 /가입을 해주세요.", ephemeral=True)
+        return
+    if info["honey"] < 100:
+        await interaction.response.send_message("허니가 부족합니다.", ephemeral=True)
+        return
+    db.add_honey(user_id, -100)
+    total = sum(item["weight"] for item in FLOWER_ITEMS)
+    r = random.uniform(0, total)
+    cumulative = 0
+    chosen = FLOWER_ITEMS[0]
+    for item in FLOWER_ITEMS:
+        cumulative += item["weight"]
+        if r <= cumulative:
+            chosen = item
+            break
+    result_text = apply_flower_effect(user_id, chosen)
+    await interaction.response.send_message(result_text, ephemeral=False)
+
+
 @app_commands.command(name="모험확률", description="관리자만 사용가능합니다 모험 확률을 설정합니다")
 @app_commands.checks.has_permissions(administrator=True)
 @app_commands.describe(success="성공 확률", fail="실패 확률", normal="무난한 확률")
@@ -541,6 +706,7 @@ bot.tree.add_command(grant_honey)
 bot.tree.add_command(honey_group)
 bot.tree.add_command(adventure_logs_command)
 bot.tree.add_command(adventure)
+bot.tree.add_command(flower_gacha)
 bot.tree.add_command(set_adventure_prob)
 bot.tree.add_command(set_channel_command)
 bot.tree.add_command(ranking_group)
