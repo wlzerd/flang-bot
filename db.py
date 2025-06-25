@@ -402,7 +402,10 @@ def get_active_effects(user_id: str) -> list[dict]:
     now = int(time.time())
     conn = sqlite3.connect(DB_FILE)
     cur = conn.cursor()
-    cur.execute("DELETE FROM user_effects WHERE expires_at <= ?", (now,))
+    cur.execute(
+        "DELETE FROM user_effects WHERE expires_at > 0 AND expires_at <= ?",
+        (now,),
+    )
     conn.commit()
     cur.execute(
         "SELECT effect, expires_at, data FROM user_effects WHERE user_id=?",

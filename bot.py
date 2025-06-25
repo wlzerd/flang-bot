@@ -210,9 +210,8 @@ def apply_flower_effect(user_id: str, item: dict) -> str:
         db.add_honey(user_id, level["reward"])
         db.add_adventure_log(user_id, "성공", level["reward"], level["reward"])
         return f"{item['name']}의 힘으로 {level['name']} 모험을 성공해 {level['reward']} 허니를 얻었습니다!"
-    expires = now + item.get("duration", 0)
-    db.add_effect(user_id, effect, expires, {"value": item.get("value")})
-    return f"{item['name']} 효과가 {item.get('duration',0)//60}분 동안 적용됩니다!"
+    db.add_effect(user_id, effect, 0, {"value": item.get("value")})
+    return f"{item['name']} 효과가 영구적으로 적용됩니다!"
 
 
 async def run_adventure(interaction: discord.Interaction, level: dict):
@@ -664,7 +663,10 @@ async def flower_gacha(interaction: discord.Interaction):
             chosen = item
             break
     result_text = apply_flower_effect(user_id, chosen)
-    await interaction.response.send_message(result_text, ephemeral=False)
+    embed = discord.Embed(title=f"{chosen['name']} 획득!", color=discord.Color.gold())
+    embed.add_field(name="등급", value=chosen.get("rarity", "?"), inline=False)
+    embed.add_field(name="효과", value=result_text, inline=False)
+    await interaction.response.send_message(embed=embed, ephemeral=False)
 
 
 @app_commands.command(name="모험확률", description="관리자만 사용가능합니다 모험 확률을 설정합니다")
