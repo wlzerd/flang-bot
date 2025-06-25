@@ -39,7 +39,7 @@ ADVENTURE_LEVELS = [
     {
         "name": "새싹들판",
         "success": 90,
-        "reward": 100,
+        "reward": 50,
         "banner": "banner/Lv1.gif",
         "success_desc": "> 플로비가 부드러운 바람을 따라 들판을 누비다가 . . .",
         "fail_desc": "> 플로비가 나비를 따라가다 길을 잃어버리면서 . . .",
@@ -47,7 +47,7 @@ ADVENTURE_LEVELS = [
     {
         "name": "튤립정원",
         "success": 75,
-        "reward": 300,
+        "reward": 150,
         "banner": "banner/Lv2.gif",
         "success_desc": "> 플로비가 알록달록한 튤립 사이를 누비다가 . . .",
         "fail_desc": "> 플로비가 튤립 속에 숨은 벌레를 보고 깜짝 놀라 . . .",
@@ -55,15 +55,15 @@ ADVENTURE_LEVELS = [
     {
         "name": "라벤더숲",
         "success": 60,
-        "reward": 500,
+        "reward": 300,
         "banner": "banner/Lv3.gif",
         "success_desc": "> 플로비가 보라빛 향기에 이끌려 숲을 탐험하다가 . . .",
         "fail_desc": "> 플로비가 숲속 깊이 들어갔다가 길을 잃고 . . .",
     },
     {
         "name": "가시덤불",
-        "success": 45,
-        "reward": 700,
+        "success": 35,
+        "reward": 500,
         "banner": "banner/Lv4.gif",
         "success_desc": "> 플로비가 가시 사이를 날아다니며 꿀을 찾고 . . .",
         "fail_desc": "> 플로비가 가시에 찔릴 뻔해서 황급히 도망치다가 . . .",
