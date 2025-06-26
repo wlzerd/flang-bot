@@ -448,7 +448,27 @@ async def honey_command(interaction: discord.Interaction):
         name=author_name,
         icon_url=avatar_url,
     )
-    embed.add_field(name="\u200b", value=f"[{str(info.get('honey', 0))}] 허니를 보유하고 있습니다!", inline=True)
+    embed.add_field(
+        name="\u200b",
+        value=f"[{str(info.get('honey', 0))}] 허니를 보유하고 있습니다!",
+        inline=True,
+    )
+
+    effects = db.get_active_effects(user_id)
+    for eff in effects:
+        data = eff.get("data") or {}
+        item_name = data.get("item_name", eff.get("effect"))
+        item = next((it for it in FLOWER_ITEMS if it["name"] == item_name), None)
+        rarity = item.get("rarity", "?") if item else "?"
+        description = item.get("description", eff.get("effect")) if item else eff.get(
+            "effect"
+        )
+        embed.add_field(
+            name=f"{item_name} ({rarity})",
+            value=description,
+            inline=False,
+        )
+
     await interaction.response.send_message(embed=embed, ephemeral=False)
 
 
