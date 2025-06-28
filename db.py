@@ -468,3 +468,41 @@ def remove_effect(user_id: str, effect: str):
     )
     conn.commit()
     conn.close()
+
+def get_total_user_count() -> int:
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute("SELECT COUNT(*) FROM users")
+    row = cur.fetchone()
+    conn.close()
+    return row[0] if row else 0
+
+
+def get_total_honey() -> int:
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute("SELECT SUM(honey) FROM users")
+    row = cur.fetchone()
+    conn.close()
+    return row[0] if row and row[0] is not None else 0
+
+
+def get_joined_count_since(ts: int) -> int:
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute("SELECT COUNT(*) FROM users WHERE joined_at >= ?", (ts,))
+    row = cur.fetchone()
+    conn.close()
+    return row[0] if row else 0
+
+
+def get_active_user_count_since(ts: int) -> int:
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT COUNT(DISTINCT user_id) FROM honey_history WHERE timestamp >= ?",
+        (ts,),
+    )
+    row = cur.fetchone()
+    conn.close()
+    return row[0] if row else 0
