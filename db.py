@@ -17,7 +17,7 @@ def init_db():
             avatar_url TEXT,
             nick TEXT,
             honey INTEGER NOT NULL DEFAULT 0,
-            joined_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+            joined_at INTEGER NOT NULL DEFAULT 0
         )
         """
     )
@@ -60,7 +60,8 @@ def init_db():
     if "honey" not in columns:
         cur.execute("ALTER TABLE users ADD COLUMN honey INTEGER NOT NULL DEFAULT 0")
     if "joined_at" not in columns:
-        cur.execute("ALTER TABLE users ADD COLUMN joined_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))")
+        cur.execute("ALTER TABLE users ADD COLUMN joined_at INTEGER NOT NULL DEFAULT 0")
+        cur.execute("UPDATE users SET joined_at=strftime('%s','now') WHERE joined_at=0")
     cur.execute(
         """
         CREATE TABLE IF NOT EXISTS adventure_probabilities (
