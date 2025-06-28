@@ -1,10 +1,25 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { UserGrowthChart } from "@/components/user-growth-chart"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, Database, UserPlus, Activity } from "lucide-react"
 
 export default function DashboardPage() {
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalHoney: 0,
+    joinedToday: 0,
+    activeToday: 0,
+  })
+
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/stats/overview`)
+      .then((res) => res.json())
+      .then((data) => setStats(data))
+      .catch((err) => console.error(err))
+  }, [])
+
   return (
     <>
       <div className="flex items-center">
@@ -17,7 +32,7 @@ export default function DashboardPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">5</div>
+            <div className="text-2xl font-bold">{stats.totalUsers.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">서버에 가입한 전체 유저 수</p>
           </CardContent>
         </Card>
@@ -27,7 +42,7 @@ export default function DashboardPage() {
             <Database className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">101,899</div>
+            <div className="text-2xl font-bold">{stats.totalHoney.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">모든 유저가 보유한 꿀의 총합</p>
           </CardContent>
         </Card>
@@ -37,7 +52,7 @@ export default function DashboardPage() {
             <UserPlus className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+3</div>
+            <div className="text-2xl font-bold">+{stats.joinedToday.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">오늘 새로 가입한 유저 수</p>
           </CardContent>
         </Card>
@@ -47,7 +62,7 @@ export default function DashboardPage() {
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">4</div>
+            <div className="text-2xl font-bold">{stats.activeToday.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">오늘 채팅을 1회 이상 사용한 유저</p>
           </CardContent>
         </Card>
