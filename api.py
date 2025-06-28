@@ -42,7 +42,9 @@ def stats_overview():
     start_of_day = int(time.mktime(today.timetuple()))
     return {
         "totalUsers": db.get_total_user_count(),
+        "registeredUsers": db.get_total_registered_user_count(),
         "totalHoney": db.get_total_honey(),
         "joinedToday": db.get_joined_count_since(start_of_day),
+        "registeredToday": db.get_registered_count_since(start_of_day),
         "activeToday": db.get_active_user_count_since(start_of_day),
     }
