@@ -53,6 +53,29 @@ def init_db():
         )
         """
     )
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS bot_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            command TEXT NOT NULL,
+            details TEXT,
+            timestamp INTEGER NOT NULL
+        )
+        """
+    )
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS admin_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            admin_id TEXT NOT NULL,
+            target_user_id TEXT,
+            action TEXT NOT NULL,
+            details TEXT,
+            timestamp INTEGER NOT NULL
+        )
+        """
+    )
     cur.execute("PRAGMA table_info(users)")
     columns = [row[1] for row in cur.fetchall()]
     if "avatar_url" not in columns:
@@ -564,3 +587,91 @@ def get_active_user_count_since(ts: int) -> int:
     row = cur.fetchone()
     conn.close()
     return row[0] if row else 0
+
+
+def add_bot_log(user_id: str, command: str, details: str | None = None):
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT INTO bot_logs(user_id, command, details, timestamp)"
+        " VALUES (?, ?, ?, strftime('%s','now'))",
+        (user_id, command, details),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_recent_bot_logs(limit: int = 50) -> list[dict]:
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT b.id, b.timestamp, u.name, u.avatar_url, b.command, b.details
+        FROM bot_logs b
+        LEFT JOIN users u ON b.user_id = u.user_id
+        ORDER BY b.id DESC
+        LIMIT ?
+        """,
+        (limit,),
+    )
+    rows = cur.fetchall()
+    conn.close()
+    return [
+        {
+            "id": row[0],
+            "timestamp": row[1],
+            "user": {"name": row[2], "avatar": row[3]},
+            "command": row[4],
+            "details": row[5],
+        }
+        for row in rows
+    ]
+
+
+def add_admin_log(
+    admin_id: str,
+    target_user_id: str | None,
+    action: str,
+    details: str | None = None,
+):
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT INTO admin_logs(admin_id, target_user_id, action, details, timestamp)"
+        " VALUES (?, ?, ?, ?, strftime('%s','now'))",
+        (admin_id, target_user_id, action, details),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_recent_admin_logs(limit: int = 50) -> list[dict]:
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT l.id, l.timestamp,
+               a.name, a.avatar_url,
+               t.name,
+               l.action, l.details
+        FROM admin_logs l
+        LEFT JOIN users a ON l.admin_id = a.user_id
+        LEFT JOIN users t ON l.target_user_id = t.user_id
+        ORDER BY l.id DESC
+        LIMIT ?
+        """,
+        (limit,),
+    )
+    rows = cur.fetchall()
+    conn.close()
+    return [
+        {
+            "id": row[0],
+            "timestamp": row[1],
+            "admin": {"name": row[2], "avatar": row[3]},
+            "targetUser": {"name": row[4]},
+            "action": row[5],
+            "details": row[6],
+        }
+        for row in rows
+    ]

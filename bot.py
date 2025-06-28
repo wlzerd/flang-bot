@@ -34,6 +34,13 @@ honey_group = app_commands.Group(name="허니", description="허니 관련 명�
 # 랭킹 명령 그룹
 ranking_group = app_commands.Group(name="랭킹", description="랭킹 관련 명령")
 
+
+def log_command(interaction: discord.Interaction, command: str, details: str = ""):
+    try:
+        db.add_bot_log(str(interaction.user.id), command, details)
+    except Exception as e:
+        print(f"Failed to log command: {e}")
+
 # Adventure level settings
 ADVENTURE_LEVELS = [
     {
@@ -295,6 +302,8 @@ async def run_adventure(interaction: discord.Interaction, level: dict):
     if "cooldown_half" in effects:
         cooldown_seconds = cooldown_seconds // 2
     db.set_adventure_cooldown(user_id, int(time.time()) + cooldown_seconds)
+    result = "성공" if success else "실패"
+    log_command(interaction, "/모험", f"{level['name']} {result} {reward if success else 0}허니")
 
 
 async def ensure_user_record(user: discord.abc.User, guild: discord.Guild | None = None):
@@ -417,6 +426,7 @@ async def on_ready():
 @app_commands.command(name="인사", description="인사 메시지")
 async def greet_command(interaction: discord.Interaction):
     await interaction.response.send_message("안녕하세요!", ephemeral=True)
+    log_command(interaction, "/인사")
 
 
 @app_commands.command(name="가입", description="봇 서비스를 위한 가입")
@@ -449,6 +459,7 @@ async def join_command(interaction: discord.Interaction):
     await interaction.response.send_message(
         f"{user.name}님의 정보가 저장되었습니다.", ephemeral=True
     )
+    log_command(interaction, "/가입")
 
 
 @app_commands.command(name="꿀단지", description="저장된 유저 정보 보기")
@@ -513,6 +524,7 @@ async def honey_command(interaction: discord.Interaction):
         )
 
     await interaction.response.send_message(embed=embed, ephemeral=False)
+    log_command(interaction, "/꿀단지")
 
 
 @honey_group.command(name="선물", description="다른 사용자에게 허니를 선물합니다")
@@ -559,6 +571,7 @@ async def gift_honey(
         f"{user.mention}에게 {amount} 허니를 선물했습니다!",
         ephemeral=True,
     )
+    log_command(interaction, "/허니선물", f"{user.display_name}에게 {amount} 선물")
 
     # Notify the receiver via DM with an embed
     sender_display = getattr(interaction.user, "display_name", interaction.user.name)
@@ -617,6 +630,7 @@ async def adventure_logs_command(interaction: discord.Interaction):
             inline=False,
         )
     await interaction.response.send_message(embed=embed, ephemeral=True)
+    log_command(interaction, "/모험기록")
 
 
 @ranking_group.command(name="주간", description="일주일 동안 획득한 허니 랭킹")
@@ -639,6 +653,7 @@ async def weekly_ranking(interaction: discord.Interaction):
         name = row["nick"] or row["name"]
         embed.add_field(name=f"{idx}위 - {name}", value=f"+{row['earned']}", inline=False)
     await interaction.response.send_message(embed=embed, ephemeral=False)
+    log_command(interaction, "/랭킹 주간")
 
 
 @ranking_group.command(name="월간", description="한 달 동안 획득한 허니 랭킹")
@@ -663,6 +678,7 @@ async def monthly_ranking(interaction: discord.Interaction):
         name = row["nick"] or row["name"]
         embed.add_field(name=f"{idx}위 - {name}", value=f"+{row['earned']}", inline=False)
     await interaction.response.send_message(embed=embed, ephemeral=False)
+    log_command(interaction, "/랭킹 월간")
 
 
 @ranking_group.command(name="누적", description="보유 허니 기준 랭킹")
@@ -680,6 +696,7 @@ async def total_ranking(interaction: discord.Interaction):
         name = row["nick"] or row["name"]
         embed.add_field(name=f"{idx}위 - {name}", value=str(row['honey']), inline=False)
     await interaction.response.send_message(embed=embed, ephemeral=False)
+    log_command(interaction, "/랭킹 누적")
 
 
 @app_commands.command(name="꽃뽑기", description="꽃 아이템을 뽑습니다")
@@ -707,6 +724,7 @@ async def flower_gacha(interaction: discord.Interaction):
     embed.add_field(name="등급", value=chosen.get("rarity", "?"), inline=False)
     embed.add_field(name="효과", value=result_text, inline=False)
     await interaction.response.send_message(embed=embed, ephemeral=False)
+    log_command(interaction, "/꽃뽑기", chosen.get("name", ""))
 
 
 
