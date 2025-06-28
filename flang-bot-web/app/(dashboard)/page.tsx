@@ -8,8 +8,10 @@ import { Users, Database, UserPlus, Activity } from "lucide-react"
 export default function DashboardPage() {
   const [stats, setStats] = useState({
     totalUsers: 0,
+    registeredUsers: 0,
     totalHoney: 0,
     joinedToday: 0,
+    registeredToday: 0,
     activeToday: 0,
   })
 
@@ -38,6 +40,16 @@ export default function DashboardPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">등록된 유저</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.registeredUsers.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">/가입 명령을 사용한 유저 수</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">총 꿀 유통량</CardTitle>
             <Database className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -54,6 +66,16 @@ export default function DashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">+{stats.joinedToday.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">오늘 새로 가입한 유저 수</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">오늘 등록</CardTitle>
+            <UserPlus className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">+{stats.registeredToday.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">오늘 /가입을 완료한 유저 수</p>
           </CardContent>
         </Card>
         <Card>

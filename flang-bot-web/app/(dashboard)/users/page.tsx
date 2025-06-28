@@ -33,7 +33,7 @@ export default function UsersPage() {
               .toISOString()
               .split("T")[0],
             points: u.honey,
-            status: "active",
+            status: u.registered_at > 0 ? "registered" : "unregistered",
           }))
         )
       )
@@ -80,8 +80,8 @@ export default function UsersPage() {
                   <TableCell className="hidden md:table-cell">{user.joinedDate}</TableCell>
                   <TableCell className="hidden md:table-cell">{user.points.toLocaleString()} 꿀</TableCell>
                   <TableCell>
-                    <Badge variant={user.status === "active" ? "secondary" : "outline"}>
-                      {user.status === "active" ? "활동중" : "비활성"}
+                    <Badge variant={user.status === "registered" ? "secondary" : "outline"}>
+                      {user.status === "registered" ? "등록됨" : "미등록"}
                     </Badge>
                   </TableCell>
                   <TableCell>

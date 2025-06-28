@@ -34,8 +34,14 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
           joinedDate: new Date(data.joined_at * 1000)
             .toISOString()
             .split("T")[0],
+          registeredDate:
+            data.registered_at > 0
+              ? new Date(data.registered_at * 1000)
+                  .toISOString()
+                  .split("T")[0]
+              : null,
           points: data.honey,
-          status: "active",
+          status: data.registered_at > 0 ? "registered" : "unregistered",
           activityLogs: data.activityLogs.map((l: any, idx: number) => ({
             id: String(idx),
             timestamp: new Date(l.timestamp * 1000)
@@ -119,8 +125,8 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
         <h1 className="flex-1 shrink-0 whitespace-nowrap text-xl font-semibold tracking-tight sm:grow-0">
           {user.name}
         </h1>
-        <Badge variant={user.status === "active" ? "secondary" : "outline"} className="ml-auto sm:ml-0">
-          {user.status === "active" ? "활동중" : "비활성"}
+        <Badge variant={user.status === "registered" ? "secondary" : "outline"} className="ml-auto sm:ml-0">
+          {user.status === "registered" ? "등록됨" : "미등록"}
         </Badge>
       </div>
       <div className="grid gap-6 md:grid-cols-[1fr_2fr] lg:grid-cols-[1fr_3fr]">
@@ -145,6 +151,12 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
               <div className="w-full grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
                 <span className="text-muted-foreground">가입일</span>
                 <span className="text-right font-medium">{user.joinedDate}</span>
+                {user.registeredDate && (
+                  <>
+                    <span className="text-muted-foreground">등록일</span>
+                    <span className="text-right font-medium">{user.registeredDate}</span>
+                  </>
+                )}
                 <span className="text-muted-foreground">보유 꿀</span>
                 <span className="text-right font-medium">{user.points.toLocaleString()} 꿀</span>
               </div>
