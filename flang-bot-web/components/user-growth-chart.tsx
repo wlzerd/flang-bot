@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Line, LineChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -10,14 +11,6 @@ import {
   ChartLegendContent,
 } from "@/components/ui/chart"
 
-const data = [
-  { month: "1월", joined: 186, left: 80 },
-  { month: "2월", joined: 305, left: 200 },
-  { month: "3월", joined: 237, left: 120 },
-  { month: "4월", joined: 273, left: 190 },
-  { month: "5월", joined: 209, left: 130 },
-  { month: "6월", joined: 214, left: 140 },
-]
 
 const chartConfig = {
   joined: {
@@ -31,6 +24,15 @@ const chartConfig = {
 }
 
 export function UserGrowthChart() {
+  const [data, setData] = useState([])
+
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/stats/user-growth`)
+      .then((res) => res.json())
+      .then((d) => setData(d))
+      .catch((err) => console.error(err))
+  }, [])
+
   return (
     <Card>
       <CardHeader>
