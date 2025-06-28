@@ -398,6 +398,20 @@ async def on_ready():
     if not tick_voice_sessions.is_running():
         tick_voice_sessions.start()
 
+    # ensure the database reflects current guild membership
+    for guild in bot.guilds:
+        member_ids = set()
+        async for m in guild.fetch_members(limit=None):
+            member_ids.add(str(m.id))
+            await ensure_user_record(m, guild)
+            joined_ts = int(m.joined_at.timestamp()) if m.joined_at else int(time.time())
+            db.update_joined_at(str(m.id), joined_ts)
+            db.set_member_status(str(m.id), True)
+
+        existing_ids = {u["user_id"] for u in db.get_all_users()}
+        for uid in existing_ids - member_ids:
+            db.set_member_status(uid, False)
+
 
 @app_commands.command(name="인사", description="인사 메시지")
 async def greet_command(interaction: discord.Interaction):
