@@ -1,14 +1,28 @@
 version: '3.8'
 services:
   bot:
-    build: .
+    build:
+      context: .
+      target: bot
     env_file: .env
     volumes:
       - ./users.db:/app/users.db
     restart: unless-stopped
   api:
-    build: .
+    build:
+      context: .
+      target: bot
     command: ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
+    volumes:
+      - ./users.db:/app/users.db
+    restart: unless-stopped
+  web:
+    build:
+      context: .
+      target: web
+    env_file: .env
+    ports:
+      - "3000:3000"
     volumes:
       - ./users.db:/app/users.db
     restart: unless-stopped
