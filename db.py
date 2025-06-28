@@ -17,7 +17,8 @@ def init_db():
             avatar_url TEXT,
             nick TEXT,
             honey INTEGER NOT NULL DEFAULT 0,
-            joined_at INTEGER NOT NULL DEFAULT 0
+            joined_at INTEGER NOT NULL DEFAULT 0,
+            is_member INTEGER NOT NULL DEFAULT 1
         )
         """
     )
@@ -62,6 +63,9 @@ def init_db():
     if "joined_at" not in columns:
         cur.execute("ALTER TABLE users ADD COLUMN joined_at INTEGER NOT NULL DEFAULT 0")
         cur.execute("UPDATE users SET joined_at=strftime('%s','now') WHERE joined_at=0")
+    if "is_member" not in columns:
+        cur.execute("ALTER TABLE users ADD COLUMN is_member INTEGER NOT NULL DEFAULT 1")
+        cur.execute("UPDATE users SET is_member=1 WHERE is_member IS NULL")
     cur.execute(
         """
         CREATE TABLE IF NOT EXISTS adventure_probabilities (
@@ -469,10 +473,32 @@ def remove_effect(user_id: str, effect: str):
     conn.commit()
     conn.close()
 
+
+def set_member_status(user_id: str, is_member: bool):
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE users SET is_member=? WHERE user_id=?",
+        (1 if is_member else 0, user_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def update_joined_at(user_id: str, ts: int):
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE users SET joined_at=? WHERE user_id=?",
+        (ts, user_id),
+    )
+    conn.commit()
+    conn.close()
+
 def get_total_user_count() -> int:
     conn = sqlite3.connect(DB_FILE)
     cur = conn.cursor()
-    cur.execute("SELECT COUNT(*) FROM users")
+    cur.execute("SELECT COUNT(*) FROM users WHERE is_member=1")
     row = cur.fetchone()
     conn.close()
     return row[0] if row else 0
@@ -490,7 +516,10 @@ def get_total_honey() -> int:
 def get_joined_count_since(ts: int) -> int:
     conn = sqlite3.connect(DB_FILE)
     cur = conn.cursor()
-    cur.execute("SELECT COUNT(*) FROM users WHERE joined_at >= ?", (ts,))
+    cur.execute(
+        "SELECT COUNT(*) FROM users WHERE joined_at >= ? AND is_member=1",
+        (ts,),
+    )
     row = cur.fetchone()
     conn.close()
     return row[0] if row else 0
