@@ -16,7 +16,8 @@ def init_db():
             discriminator TEXT NOT NULL,
             avatar_url TEXT,
             nick TEXT,
-            honey INTEGER NOT NULL DEFAULT 0
+            honey INTEGER NOT NULL DEFAULT 0,
+            joined_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
         )
         """
     )
@@ -58,6 +59,8 @@ def init_db():
         cur.execute("ALTER TABLE users ADD COLUMN nick TEXT")
     if "honey" not in columns:
         cur.execute("ALTER TABLE users ADD COLUMN honey INTEGER NOT NULL DEFAULT 0")
+    if "joined_at" not in columns:
+        cur.execute("ALTER TABLE users ADD COLUMN joined_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))")
     cur.execute(
         """
         CREATE TABLE IF NOT EXISTS adventure_probabilities (
@@ -105,17 +108,20 @@ def add_or_update_user(
 ):
     conn = sqlite3.connect(DB_FILE)
     cur = conn.cursor()
+    cur.execute("SELECT joined_at FROM users WHERE user_id=?", (user_id,))
+    row = cur.fetchone()
+    joined_at = int(time.time()) if row is None else row[0]
     cur.execute(
         """
-        INSERT INTO users(user_id, name, discriminator, avatar_url, nick, honey)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO users(user_id, name, discriminator, avatar_url, nick, honey, joined_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(user_id) DO UPDATE SET
             name=excluded.name,
             discriminator=excluded.discriminator,
             avatar_url=excluded.avatar_url,
             nick=excluded.nick
         """,
-        (user_id, name, discriminator, avatar_url, nick, honey),
+        (user_id, name, discriminator, avatar_url, nick, honey, joined_at),
     )
     conn.commit()
     conn.close()
@@ -125,15 +131,44 @@ def get_user(user_id: str):
     conn = sqlite3.connect(DB_FILE)
     cur = conn.cursor()
     cur.execute(
-        "SELECT user_id, name, discriminator, avatar_url, nick, honey FROM users WHERE user_id=?",
+        "SELECT user_id, name, discriminator, avatar_url, nick, honey, joined_at FROM users WHERE user_id=?",
         (user_id,),
     )
     row = cur.fetchone()
     conn.close()
     if row:
-        keys = ["user_id", "name", "discriminator", "avatar_url", "nick", "honey"]
+        keys = ["user_id", "name", "discriminator", "avatar_url", "nick", "honey", "joined_at"]
         return dict(zip(keys, row))
     return None
+
+
+def get_all_users():
+    """Return a list of all users."""
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT user_id, name, discriminator, avatar_url, nick, honey, joined_at FROM users"
+    )
+    rows = cur.fetchall()
+    conn.close()
+    keys = ["user_id", "name", "discriminator", "avatar_url", "nick", "honey", "joined_at"]
+    return [dict(zip(keys, row)) for row in rows]
+
+
+def get_honey_history(user_id: str, limit: int = 20):
+    """Return recent honey history records for a user."""
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT timestamp, amount FROM honey_history WHERE user_id=? ORDER BY id DESC LIMIT ?",
+        (user_id, limit),
+    )
+    rows = cur.fetchall()
+    conn.close()
+    return [
+        {"timestamp": row[0], "change": row[1]}
+        for row in rows
+    ]
 
 
 def add_honey(user_id: str, amount: int):

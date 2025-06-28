@@ -1,6 +1,9 @@
+"use client"
+
 import Image from "next/image"
 import { MoreHorizontal } from "lucide-react"
 import Link from "next/link"
+import { useEffect, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -14,51 +17,28 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
-// 샘플 사용자 데이터입니다. 실제로는 API를 통해 받아오게 됩니다.
-const users = [
-  {
-    id: "USR001",
-    name: "모험적인유저",
-    avatar: "/placeholder.svg?height=32&width=32",
-    joinedDate: "2025-01-15",
-    points: 1250,
-    status: "active",
-  },
-  {
-    id: "USR002",
-    name: "관대한기부자",
-    avatar: "/placeholder.svg?height=32&width=32",
-    joinedDate: "2025-02-20",
-    points: 500,
-    status: "active",
-  },
-  {
-    id: "USR003",
-    name: "새로운참가자",
-    avatar: "/placeholder.svg?height=32&width=32",
-    joinedDate: "2025-06-28",
-    points: 100,
-    status: "active",
-  },
-  {
-    id: "USR004",
-    name: "관리자마스터",
-    avatar: "/placeholder.svg?height=32&width=32",
-    joinedDate: "2024-12-10",
-    points: 99999,
-    status: "active",
-  },
-  {
-    id: "USR005",
-    name: "휴면계정",
-    avatar: "/placeholder.svg?height=32&width=32",
-    joinedDate: "2025-03-05",
-    points: 50,
-    status: "inactive",
-  },
-]
-
 export default function UsersPage() {
+  const [users, setUsers] = useState<any[]>([])
+
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/users`)
+      .then((res) => res.json())
+      .then((data) =>
+        setUsers(
+          data.map((u: any) => ({
+            id: u.user_id,
+            name: u.name,
+            avatar: u.avatar_url,
+            joinedDate: new Date(u.joined_at * 1000)
+              .toISOString()
+              .split("T")[0],
+            points: u.honey,
+            status: "active",
+          }))
+        )
+      )
+      .catch((err) => console.error(err))
+  }, [])
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center">
