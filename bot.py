@@ -39,7 +39,7 @@ ADVENTURE_LEVELS = [
     {
         "name": "새싹들판",
         "success": 90,
-        "reward": 100,
+        "reward": 50,
         "banner": "banner/Lv1.gif",
         "success_desc": "> 플로비가 부드러운 바람을 따라 들판을 누비다가 . . .",
         "fail_desc": "> 플로비가 나비를 따라가다 길을 잃어버리면서 . . .",
@@ -47,7 +47,7 @@ ADVENTURE_LEVELS = [
     {
         "name": "튤립정원",
         "success": 75,
-        "reward": 300,
+        "reward": 150,
         "banner": "banner/Lv2.gif",
         "success_desc": "> 플로비가 알록달록한 튤립 사이를 누비다가 . . .",
         "fail_desc": "> 플로비가 튤립 속에 숨은 벌레를 보고 깜짝 놀라 . . .",
@@ -55,15 +55,15 @@ ADVENTURE_LEVELS = [
     {
         "name": "라벤더숲",
         "success": 60,
-        "reward": 500,
+        "reward": 300,
         "banner": "banner/Lv3.gif",
         "success_desc": "> 플로비가 보라빛 향기에 이끌려 숲을 탐험하다가 . . .",
         "fail_desc": "> 플로비가 숲속 깊이 들어갔다가 길을 잃고 . . .",
     },
     {
         "name": "가시덤불",
-        "success": 45,
-        "reward": 700,
+        "success": 35,
+        "reward": 500,
         "banner": "banner/Lv4.gif",
         "success_desc": "> 플로비가 가시 사이를 날아다니며 꿀을 찾고 . . .",
         "fail_desc": "> 플로비가 가시에 찔릴 뻔해서 황급히 도망치다가 . . .",
@@ -449,23 +449,37 @@ async def honey_command(interaction: discord.Interaction):
         icon_url=avatar_url,
     )
     embed.add_field(
-        name="\u200b",
+        name="Ny허니",
         value=f"[{str(info.get('honey', 0))}] 허니를 보유하고 있습니다!",
-        inline=True,
+        inline=False,
     )
 
     effects = db.get_active_effects(user_id)
-    for eff in effects:
-        data = eff.get("data") or {}
-        item_name = data.get("item_name", eff.get("effect"))
-        item = next((it for it in FLOWER_ITEMS if it["name"] == item_name), None)
-        rarity = item.get("rarity", "?") if item else "?"
-        description = item.get("description", eff.get("effect")) if item else eff.get(
-            "effect"
-        )
+    if effects:
+        effect_lines = []
+        for eff in effects:
+            data = eff.get("data") or {}
+            raw_item_name = data.get("item_name", eff.get("effect"))
+
+            item = next(
+                (it for it in FLOWER_ITEMS if it["name"] == raw_item_name or it["effect"] == raw_item_name),
+                None
+            )
+
+            item_name = item.get("name", raw_item_name) if item else raw_item_name
+            rarity = item.get("rarity", "?") if item else "?"
+            description = (
+                item.get("description")
+                if item and item.get("description")
+                else data.get("description") or eff.get("effect")
+            )
+
+            effect_lines.append(f"**{item_name} ({rarity})**: {description}")
+
+        # 하나의 필드로 통합해서 여백 줄이기
         embed.add_field(
-            name=f"{item_name} ({rarity})",
-            value=description,
+            name="보유 중인 효과",
+            value="\n".join(effect_lines),
             inline=False,
         )
 

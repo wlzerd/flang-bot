@@ -5,7 +5,7 @@ import type React from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { Home, Bot, PanelLeft, Search, Swords, Coins } from "lucide-react"
+import { Home, Bot, PanelLeft, Search, Swords, Coins, History, Users, ShieldCheck } from "lucide-react"
 import { Suspense } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -20,6 +20,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
+import { Toaster } from "@/components/ui/toaster"
 
 export default function DashboardLayout({
   children,
@@ -30,8 +31,11 @@ export default function DashboardLayout({
 
   const navItems = [
     { href: "/", label: "홈", icon: Home },
+    { href: "/users", label: "사용자 목록", icon: Users },
     { href: "/points", label: "포인트 지급", icon: Coins },
     { href: "/dungeon", label: "던전 조정", icon: Swords },
+    { href: "/logs", label: "봇 사용 로그", icon: History },
+    { href: "/admin-logs", label: "관리자 로그", icon: ShieldCheck },
   ]
 
   return (
@@ -133,6 +137,7 @@ export default function DashboardLayout({
           <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">{children}</main>
         </div>
       </div>
+      <Toaster />
     </Suspense>
   )
 }
