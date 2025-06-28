@@ -46,7 +46,14 @@ print(user.get_honey_str())  # '1.5'
 
 ## Docker로 실행하기
 
-docker compose를 사용하면 로컬에 파이썬을 설치하지 않고도 봇을 실행할 수 있습니다. 먼저 `.env` 파일에 `DISCORD_TOKEN`을 설정한 뒤 아래 명령을 실행하세요.
+docker compose를 사용하면 로컬에 파이썬을 설치하지 않고도 봇을 실행할 수 있습니다. 먼저 `.env` 파일을 만들어 다음과 같이 환경 변수를 설정합니다.
+
+```env
+DISCORD_TOKEN=여러분의봇토큰
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+```
+
+이 값들은 빌드 단계에서도 자동으로 주입되므로, 변경 후에는 다시 이미지를 빌드해야 합니다.
 
 ```bash
 docker compose build
@@ -54,7 +61,7 @@ docker compose up
 ```
 
 `api` 서비스가 함께 실행되어 웹 대시보드에서 데이터를 조회할 수 있습니다. 기본적으로
-`http://localhost:8000` 에서 API가 동작하므로 프론트엔드의 `NEXT_PUBLIC_API_BASE_URL`
-환경 변수를 동일하게 맞춰 주어야 합니다.
+`http://localhost:8000` 에서 API가 동작하므로 위 `.env` 파일의
+`NEXT_PUBLIC_API_BASE_URL` 값도 동일하게 유지해야 합니다.
 
 컨테이너는 `users.db` 파일을 호스트와 공유하므로 데이터를 유지한 채 재시작할 수 있습니다.
