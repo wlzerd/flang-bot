@@ -369,6 +369,19 @@ async def on_voice_state_update(member: discord.Member, before: discord.VoiceSta
 
 
 @bot.event
+async def on_member_join(member: discord.Member):
+    await ensure_user_record(member, member.guild)
+    joined_ts = int(member.joined_at.timestamp()) if member.joined_at else int(time.time())
+    db.update_joined_at(str(member.id), joined_ts)
+    db.set_member_status(str(member.id), True)
+
+
+@bot.event
+async def on_member_remove(member: discord.Member):
+    db.set_member_status(str(member.id), False)
+
+
+@bot.event
 async def on_ready():
     print(f'Logged in as {bot.user} (ID: {bot.user.id})')
     try:
