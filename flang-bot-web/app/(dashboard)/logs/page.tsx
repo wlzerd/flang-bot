@@ -16,66 +16,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 
-// 샘플 로그 데이터입니다. 실제로는 API를 통해 받아오게 됩니다.
-const logs = [
-  {
-    id: "LOG001",
-    timestamp: "2025-06-29 10:30:15",
-    user: {
-      name: "모험적인유저",
-      avatar: "/placeholder.svg?height=32&width=32",
-    },
-    command: "/모험",
-    details: "성공 - 50 꿀 획득",
-  },
-  {
-    id: "LOG002",
-    timestamp: "2025-06-29 10:28:45",
-    user: {
-      name: "관대한기부자",
-      avatar: "/placeholder.svg?height=32&width=32",
-    },
-    command: "/허니선물",
-    details: "모험적인유저에게 100 꿀 선물",
-  },
-  {
-    id: "LOG003",
-    timestamp: "2025-06-28 10:25:02",
-    user: {
-      name: "새로운참가자",
-      avatar: "/placeholder.svg?height=32&width=32",
-    },
-    command: "/가입",
-    details: "신규 가입 완료",
-  },
-  {
-    id: "LOG004",
-    timestamp: "2025-06-28 10:20:11",
-    user: {
-      name: "모험적인유저",
-      avatar: "/placeholder.svg?height=32&width=32",
-    },
-    command: "/모험",
-    details: "실패 - 20 꿀 잃음",
-  },
-  {
-    id: "LOG005",
-    timestamp: "2025-06-27 10:15:55",
-    user: {
-      name: "관리자마스터",
-      avatar: "/placeholder.svg?height=32&width=32",
-    },
-    command: "/지급",
-    details: "관대한기부자에게 1000 꿀 지급",
-  },
-]
-
 export default function LogsPage() {
+  const [logs, setLogs] = React.useState<any[]>([])
   const [userFilter, setUserFilter] = React.useState("")
   const [commandFilter, setCommandFilter] = React.useState("all")
   const [date, setDate] = React.useState<DateRange | undefined>()
 
-  const uniqueCommands = ["all", ...Array.from(new Set(logs.map((log) => log.command)))]
+  React.useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/logs/bot`)
+      .then((res) => res.json())
+      .then((d) => setLogs(d))
+      .catch((err) => console.error(err))
+  }, [])
+
+  const uniqueCommands = React.useMemo(
+    () => ["all", ...Array.from(new Set(logs.map((log) => log.command)))],
+    [logs]
+  )
 
   const filteredLogs = React.useMemo(() => {
     return logs.filter((log) => {
@@ -89,7 +46,7 @@ export default function LogsPage() {
 
       return dateMatch && userMatch && commandMatch
     })
-  }, [userFilter, commandFilter, date])
+  }, [logs, userFilter, commandFilter, date])
 
   return (
     <div className="flex flex-col gap-6">
