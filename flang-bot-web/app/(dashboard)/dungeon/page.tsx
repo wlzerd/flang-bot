@@ -1,3 +1,6 @@
+"use client"
+
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -6,6 +9,19 @@ import { Slider } from "@/components/ui/slider"
 import { Checkbox } from "@/components/ui/checkbox"
 
 export default function DungeonPage() {
+  const [difficulty, setDifficulty] = useState([50])
+
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const success = difficulty[0]
+    const fail = 100 - success
+    await fetch('/api/adventure-probabilities', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ success, fail, normal: 0 })
+    })
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center">
@@ -17,10 +33,10 @@ export default function DungeonPage() {
           <CardDescription>모험(던전)의 세부 설정을 조정합니다.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="grid gap-6">
+          <form className="grid gap-6" onSubmit={submit}>
             <div className="grid gap-3">
               <Label htmlFor="difficulty">난이도</Label>
-              <Slider id="difficulty" defaultValue={[50]} max={100} step={1} />
+              <Slider id="difficulty" value={difficulty} onValueChange={setDifficulty} max={100} step={1} />
               <div className="flex justify-between text-sm text-muted-foreground">
                 <span>쉬움</span>
                 <span>보통</span>
@@ -58,11 +74,10 @@ export default function DungeonPage() {
                 </label>
               </div>
             </div>
+            <Button type="submit">설정 저장</Button>
           </form>
         </CardContent>
-        <CardFooter className="border-t px-6 py-4">
-          <Button>설정 저장</Button>
-        </CardFooter>
+        <CardFooter className="border-t px-6 py-4" />
       </Card>
     </div>
   )

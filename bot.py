@@ -533,39 +533,6 @@ async def gift_honey(
         pass
 
 
-@app_commands.command(name="지급", description=" 관리자 권한을 가진 사용자만 사용가능합니다. 특정 사유로 허니를 지급합니다")
-@app_commands.checks.has_permissions(administrator=True)
-@app_commands.describe(
-    user="허니를 지급할 사용자",
-    amount="지급할 허니 양",
-    reason="지급 사유",
-)
-async def grant_honey(
-    interaction: discord.Interaction,
-    user: discord.Member,
-    amount: app_commands.Range[int, 1],
-    reason: str,
-):
-    if not db.get_user(str(user.id)):
-        await interaction.response.send_message(
-            "해당 사용자가 /가입을 하지 않았습니다.", ephemeral=True
-        )
-        return
-
-    db.add_honey(str(user.id), amount)
-
-    embed = discord.Embed(color=discord.Color.gold())
-    embed.add_field(
-        name="\u200b",
-        value=f"{reason}로 인해 {amount} 허니가 지급됬어요",
-        inline=False,
-    )
-    try:
-        await user.send(embed=embed)
-    except Exception:
-        pass
-
-    await interaction.response.send_message("허니가 지급되었습니다.", ephemeral=True)
 
 
 
@@ -699,48 +666,15 @@ async def flower_gacha(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=False)
 
 
-@app_commands.command(name="모험확률", description="관리자만 사용가능합니다 모험 확률을 설정합니다")
-@app_commands.checks.has_permissions(administrator=True)
-@app_commands.describe(success="성공 확률", fail="실패 확률", normal="무난한 확률")
-async def set_adventure_prob(
-    interaction: discord.Interaction,
-    success: app_commands.Range[float, 0, 100],
-    fail: app_commands.Range[float, 0, 100],
-    normal: app_commands.Range[float, 0, 100],
-):
-    total = success + fail + normal
-    if abs(total - 100) > 1e-6:
-        await interaction.response.send_message("세 확률의 합은 100이어야 합니다.", ephemeral=True)
-        return
-    db.set_adventure_probabilities(success, fail, normal)
-    await interaction.response.send_message("모험 확률이 업데이트되었습니다.", ephemeral=False)
-
-
-@app_commands.command(name="채널", description="봇 명령을 허용할 채널을 추가합니다")
-@app_commands.checks.has_permissions(administrator=True)
-@app_commands.describe(channel="명령을 사용할 채널")
-async def set_channel_command(
-    interaction: discord.Interaction, channel: discord.TextChannel
-):
-    if not interaction.guild:
-        await interaction.response.send_message("서버에서만 사용할 수 있습니다.", ephemeral=True)
-        return
-    db.add_allowed_channel(str(interaction.guild.id), str(channel.id))
-    await interaction.response.send_message(
-        f"{channel.mention} 채널이 명령 허용 목록에 추가되었습니다.", ephemeral=True
-    )
 
 
 bot.tree.add_command(greet_command)
 bot.tree.add_command(join_command)
 bot.tree.add_command(honey_command)
-bot.tree.add_command(grant_honey)
 bot.tree.add_command(honey_group)
 bot.tree.add_command(adventure_logs_command)
 bot.tree.add_command(adventure)
 bot.tree.add_command(flower_gacha)
-bot.tree.add_command(set_adventure_prob)
-bot.tree.add_command(set_channel_command)
 bot.tree.add_command(ranking_group)
 
 if __name__ == "__main__":

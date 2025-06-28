@@ -3,3 +3,6 @@ __pycache__/
 
 .idea/
 users.db
+flang-bot-web/node_modules/
+flang-bot-web/.next/
+flang-bot-web/next-env.d.ts
