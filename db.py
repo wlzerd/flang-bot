@@ -18,7 +18,8 @@ def init_db():
             nick TEXT,
             honey INTEGER NOT NULL DEFAULT 0,
             joined_at INTEGER NOT NULL DEFAULT 0,
-            is_member INTEGER NOT NULL DEFAULT 1
+            is_member INTEGER NOT NULL DEFAULT 1,
+            registered_at INTEGER NOT NULL DEFAULT 0
         )
         """
     )
@@ -66,6 +67,9 @@ def init_db():
     if "is_member" not in columns:
         cur.execute("ALTER TABLE users ADD COLUMN is_member INTEGER NOT NULL DEFAULT 1")
         cur.execute("UPDATE users SET is_member=1 WHERE is_member IS NULL")
+    if "registered_at" not in columns:
+        cur.execute("ALTER TABLE users ADD COLUMN registered_at INTEGER NOT NULL DEFAULT 0")
+        cur.execute("UPDATE users SET registered_at=0 WHERE registered_at IS NULL")
     cur.execute(
         """
         CREATE TABLE IF NOT EXISTS adventure_probabilities (
@@ -110,23 +114,29 @@ def add_or_update_user(
     avatar_url: str | None,
     nick: str | None,
     honey: int = 0,
+    register: bool = False,
 ):
     conn = sqlite3.connect(DB_FILE)
     cur = conn.cursor()
-    cur.execute("SELECT joined_at FROM users WHERE user_id=?", (user_id,))
+    cur.execute("SELECT joined_at, registered_at FROM users WHERE user_id=?", (user_id,))
     row = cur.fetchone()
     joined_at = int(time.time()) if row is None else row[0]
+    existing_registered = row[1] if row is not None else 0
+    registered_at = existing_registered
+    if register and existing_registered == 0:
+        registered_at = int(time.time())
     cur.execute(
         """
-        INSERT INTO users(user_id, name, discriminator, avatar_url, nick, honey, joined_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO users(user_id, name, discriminator, avatar_url, nick, honey, joined_at, registered_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(user_id) DO UPDATE SET
             name=excluded.name,
             discriminator=excluded.discriminator,
             avatar_url=excluded.avatar_url,
-            nick=excluded.nick
+            nick=excluded.nick,
+            registered_at=CASE WHEN excluded.registered_at > 0 THEN excluded.registered_at ELSE users.registered_at END
         """,
-        (user_id, name, discriminator, avatar_url, nick, honey, joined_at),
+        (user_id, name, discriminator, avatar_url, nick, honey, joined_at, registered_at),
     )
     conn.commit()
     conn.close()
@@ -136,13 +146,13 @@ def get_user(user_id: str):
     conn = sqlite3.connect(DB_FILE)
     cur = conn.cursor()
     cur.execute(
-        "SELECT user_id, name, discriminator, avatar_url, nick, honey, joined_at FROM users WHERE user_id=?",
+        "SELECT user_id, name, discriminator, avatar_url, nick, honey, joined_at, registered_at FROM users WHERE user_id=?",
         (user_id,),
     )
     row = cur.fetchone()
     conn.close()
     if row:
-        keys = ["user_id", "name", "discriminator", "avatar_url", "nick", "honey", "joined_at"]
+        keys = ["user_id", "name", "discriminator", "avatar_url", "nick", "honey", "joined_at", "registered_at"]
         return dict(zip(keys, row))
     return None
 
@@ -152,11 +162,11 @@ def get_all_users():
     conn = sqlite3.connect(DB_FILE)
     cur = conn.cursor()
     cur.execute(
-        "SELECT user_id, name, discriminator, avatar_url, nick, honey, joined_at FROM users"
+        "SELECT user_id, name, discriminator, avatar_url, nick, honey, joined_at, registered_at FROM users"
     )
     rows = cur.fetchall()
     conn.close()
-    keys = ["user_id", "name", "discriminator", "avatar_url", "nick", "honey", "joined_at"]
+    keys = ["user_id", "name", "discriminator", "avatar_url", "nick", "honey", "joined_at", "registered_at"]
     return [dict(zip(keys, row)) for row in rows]
 
 
@@ -503,6 +513,14 @@ def get_total_user_count() -> int:
     conn.close()
     return row[0] if row else 0
 
+def get_total_registered_user_count() -> int:
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute("SELECT COUNT(*) FROM users WHERE registered_at > 0")
+    row = cur.fetchone()
+    conn.close()
+    return row[0] if row else 0
+
 
 def get_total_honey() -> int:
     conn = sqlite3.connect(DB_FILE)
@@ -518,6 +536,17 @@ def get_joined_count_since(ts: int) -> int:
     cur = conn.cursor()
     cur.execute(
         "SELECT COUNT(*) FROM users WHERE joined_at >= ? AND is_member=1",
+        (ts,),
+    )
+    row = cur.fetchone()
+    conn.close()
+    return row[0] if row else 0
+
+def get_registered_count_since(ts: int) -> int:
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT COUNT(*) FROM users WHERE registered_at >= ?",
         (ts,),
     )
     row = cur.fetchone()

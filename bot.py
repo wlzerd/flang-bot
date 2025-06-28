@@ -321,6 +321,7 @@ async def ensure_user_record(user: discord.abc.User, guild: discord.Guild | None
         avatar_url,
         nick,
         0,
+        False,
     )
 
 
@@ -443,6 +444,7 @@ async def join_command(interaction: discord.Interaction):
         avatar_url,
         nick,
         honey,
+        True,
     )
     await interaction.response.send_message(
         f"{user.name}님의 정보가 저장되었습니다.", ephemeral=True
