@@ -9,6 +9,8 @@ CMD ["python", "bot.py"]
 # ---- Frontend image ----
 FROM node:20 AS web
 WORKDIR /app
+ARG NEXT_PUBLIC_API_BASE_URL
+ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
 COPY flang-bot-web/package.json flang-bot-web/pnpm-lock.yaml ./flang-bot-web/
 RUN npm install -g pnpm && cd flang-bot-web && pnpm install
 COPY flang-bot-web ./flang-bot-web
