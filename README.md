@@ -53,4 +53,8 @@ docker compose build
 docker compose up
 ```
 
+`api` 서비스가 함께 실행되어 웹 대시보드에서 데이터를 조회할 수 있습니다. 기본적으로
+`http://localhost:8000` 에서 API가 동작하므로 프론트엔드의 `NEXT_PUBLIC_API_BASE_URL`
+환경 변수를 동일하게 맞춰 주어야 합니다.
+
 컨테이너는 `users.db` 파일을 호스트와 공유하므로 데이터를 유지한 채 재시작할 수 있습니다.

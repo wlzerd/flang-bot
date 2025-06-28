@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { ArrowLeft, Coins, History } from "lucide-react"
@@ -16,102 +17,48 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 
-// 샘플 데이터입니다. 실제로는 API를 통해 받아오게 됩니다.
-const usersData = {
-  USR001: {
-    id: "USR001",
-    name: "모험적인유저",
-    avatar: "/placeholder.svg?height=96&width=96",
-    joinedDate: "2025-01-15",
-    points: 1250,
-    status: "active",
-    activityLogs: [
-      { id: "L01", timestamp: "2025-06-29 10:30:15", command: "/모험", details: "성공 - 50 꿀 획득" },
-      { id: "L02", timestamp: "2025-06-28 10:20:11", command: "/모험", details: "실패 - 20 꿀 잃음" },
-      { id: "L03", timestamp: "2025-06-28 09:05:43", command: "/꿀단지", details: "보유 꿀 확인" },
-    ],
-    pointHistory: [
-      { id: "P01", timestamp: "2025-06-29 10:30:15", description: "모험 성공 보상", change: "+50", balance: 1250 },
-      {
-        id: "P02",
-        timestamp: "2025-06-29 10:28:45",
-        description: "관대한기부자에게 선물 받음",
-        change: "+100",
-        balance: 1200,
-      },
-      { id: "P03", timestamp: "2025-06-28 10:20:11", description: "모험 실패", change: "-20", balance: 1100 },
-      { id: "P04", timestamp: "2025-06-27 15:00:00", description: "이벤트 참가 보상", change: "+1000", balance: 1120 },
-      { id: "P05", timestamp: "2025-01-15 12:00:00", description: "가입 축하 꿀", change: "+20", balance: 20 },
-    ],
-  },
-  USR002: {
-    id: "USR002",
-    name: "관대한기부자",
-    avatar: "/placeholder.svg?height=96&width=96",
-    joinedDate: "2025-02-20",
-    points: 500,
-    status: "active",
-    activityLogs: [
-      { id: "L04", timestamp: "2025-06-29 10:28:45", command: "/허니선물", details: "모험적인유저에게 100 꿀 선물" },
-    ],
-    pointHistory: [
-      {
-        id: "P06",
-        timestamp: "2025-06-29 10:28:45",
-        description: "모험적인유저에게 선물",
-        change: "-100",
-        balance: 500,
-      },
-      {
-        id: "P07",
-        timestamp: "2025-06-27 10:15:55",
-        description: "관리자로부터 지급받음",
-        change: "+1000",
-        balance: 600,
-      },
-    ],
-  },
-  USR003: {
-    id: "USR003",
-    name: "새로운참가자",
-    avatar: "/placeholder.svg?height=96&width=96",
-    joinedDate: "2025-06-28",
-    points: 100,
-    status: "active",
-    activityLogs: [{ id: "L05", timestamp: "2025-06-28 10:25:02", command: "/가입", details: "신규 가입 완료" }],
-    pointHistory: [
-      { id: "P08", timestamp: "2025-06-28 10:25:02", description: "가입 축하 꿀", change: "+100", balance: 100 },
-    ],
-  },
-  USR004: {
-    id: "USR004",
-    name: "관리자마스터",
-    avatar: "/placeholder.svg?height=96&width=96",
-    joinedDate: "2024-12-10",
-    points: 99999,
-    status: "active",
-    activityLogs: [
-      { id: "L06", timestamp: "2025-06-27 10:15:55", command: "/지급", details: "관대한기부자에게 1000 꿀 지급" },
-    ],
-    pointHistory: [],
-  },
-  USR005: {
-    id: "USR005",
-    name: "휴면계정",
-    avatar: "/placeholder.svg?height=96&width=96",
-    joinedDate: "2025-03-05",
-    points: 50,
-    status: "inactive",
-    activityLogs: [],
-    pointHistory: [],
-  },
-}
-
 export default function UserDetailPage({ params }: { params: { userId: string } }) {
   const { toast } = useToast()
   const [amount, setAmount] = React.useState("")
   const [reason, setReason] = React.useState("")
-  const user = usersData[params.userId as keyof typeof usersData]
+  const [user, setUser] = useState<any | null>(null)
+
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/users/${params.userId}`)
+      .then((res) => res.json())
+      .then((data) =>
+        setUser({
+          id: data.user_id,
+          name: data.name,
+          avatar: data.avatar_url,
+          joinedDate: new Date(data.joined_at * 1000)
+            .toISOString()
+            .split("T")[0],
+          points: data.honey,
+          status: "active",
+          activityLogs: data.activityLogs.map((l: any, idx: number) => ({
+            id: String(idx),
+            timestamp: new Date(l.timestamp * 1000)
+              .toISOString()
+              .replace("T", " ")
+              .slice(0, 19),
+            command: "/모험",
+            details: `${l.result} - ${l.change} 꿀`,
+          })),
+          pointHistory: data.pointHistory.map((h: any, idx: number) => ({
+            id: String(idx),
+            timestamp: new Date(h.timestamp * 1000)
+              .toISOString()
+              .replace("T", " ")
+              .slice(0, 19),
+            description: "", // no description available
+            change: h.change > 0 ? `+${h.change}` : String(h.change),
+            balance: 0,
+          })),
+        })
+      )
+      .catch((err) => console.error(err))
+  }, [params.userId])
 
   const handlePointAdjustment = (type: "give" | "deduct") => {
     const pointAmount = Number.parseInt(amount, 10)
@@ -134,15 +81,22 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
     }
 
     const actionText = type === "give" ? "지급" : "차감"
-    const description = `${user.name}님에게 ${pointAmount.toLocaleString()} 꿀을 ${actionText}했습니다. (사유: ${reason})`
 
-    toast({
-      title: `포인트 ${actionText} 완료`,
-      description: description,
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/users/${params.userId}/points`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount: type === "give" ? pointAmount : -pointAmount, reason }),
     })
-
-    // 실제 애플리케이션에서는 여기서 API를 호출하여 서버의 데이터를 업데이트합니다.
-    // 예: await updateUserPoints(user.id, type === 'give' ? pointAmount : -pointAmount, reason);
+      .then((res) => {
+        if (!res.ok) throw new Error("request failed")
+        toast({
+          title: `포인트 ${actionText} 완료`,
+          description: `${user?.name ?? ""}님에게 ${pointAmount.toLocaleString()} 꿀을 ${actionText}했습니다. (사유: ${reason})`,
+        })
+      })
+      .catch(() =>
+        toast({ title: "오류", description: "요청에 실패했습니다.", variant: "destructive" })
+      )
 
     // 폼 초기화
     setAmount("")
@@ -150,14 +104,7 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
   }
 
   if (!user) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full">
-        <h2 className="text-2xl font-bold mb-4">사용자를 찾을 수 없습니다.</h2>
-        <Link href="/users">
-          <Button>사용자 목록으로 돌아가기</Button>
-        </Link>
-      </div>
-    )
+    return <div className="flex items-center justify-center p-4">Loading...</div>
   }
 
   return (
