@@ -1,6 +1,7 @@
 import db
 import time
 import datetime
+import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -11,6 +12,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Simple admin credentials for login
+ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "password")
 
 db.init_db()
 
@@ -79,3 +84,12 @@ def admin_logs():
     for log in logs:
         log["timestamp"] = datetime.datetime.fromtimestamp(log["timestamp"]).strftime("%Y-%m-%d %H:%M:%S")
     return logs
+
+
+@app.post("/login")
+def login(payload: dict):
+    username = payload.get("username")
+    password = payload.get("password")
+    if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+        return {"status": "ok"}
+    raise HTTPException(status_code=401, detail="Invalid credentials")

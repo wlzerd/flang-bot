@@ -13,12 +13,23 @@ import { Label } from "@/components/ui/label"
 export default function LoginPage() {
   const router = useRouter()
 
-  const handleLogin = (event: React.FormEvent) => {
+  const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    // 실제 애플리케이션에서는 여기서 인증 로직을 처리합니다.
-    // 예: const response = await fetch('/api/login', { ... });
-    // 로그인이 성공했다고 가정하고 대시보드로 리디렉션합니다.
-    router.push("/")
+    const form = event.currentTarget
+    const username = (form.elements.namedItem("username") as HTMLInputElement).value
+    const password = (form.elements.namedItem("password") as HTMLInputElement).value
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      })
+      if (!res.ok) throw new Error("login failed")
+      localStorage.setItem("loggedIn", "true")
+      router.push("/")
+    } catch (err) {
+      alert("로그인 실패")
+    }
   }
 
   return (
@@ -35,11 +46,11 @@ export default function LoginPage() {
           <form onSubmit={handleLogin} className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="username">아이디</Label>
-              <Input id="username" type="text" placeholder="admin" required />
+              <Input id="username" name="username" type="text" placeholder="admin" required />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="password">비밀번호</Label>
-              <Input id="password" type="password" required />
+              <Input id="password" name="password" type="password" required />
             </div>
             <Button type="submit" className="w-full mt-2">
               로그인
