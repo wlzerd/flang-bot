@@ -4,7 +4,7 @@ import type React from "react"
 
 import Link from "next/link"
 import Image from "next/image"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { Home, Bot, PanelLeft, Search, Swords, Coins, History, Users, ShieldCheck } from "lucide-react"
 import { Suspense } from "react"
 
@@ -28,6 +28,7 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
+  const router = useRouter()
 
   const navItems = [
     { href: "/", label: "홈", icon: Home },
@@ -37,6 +38,11 @@ export default function DashboardLayout({
     { href: "/logs", label: "봇 사용 로그", icon: History },
     { href: "/admin-logs", label: "관리자 로그", icon: ShieldCheck },
   ]
+
+  const handleLogout = () => {
+    // 실제 애플리케이션에서는 로그아웃 API 호출 및 세션 정리 로직이 필요합니다.
+    router.push("/login")
+  }
 
   return (
     <Suspense>
@@ -130,7 +136,7 @@ export default function DashboardLayout({
                 <DropdownMenuItem>설정</DropdownMenuItem>
                 <DropdownMenuItem>지원</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>로그아웃</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout}>로그아웃</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </header>

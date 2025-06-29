@@ -4,3 +4,4 @@ users.db
 .env.example
 .git
 .idea/
+flang-bot-web/node_modules/
