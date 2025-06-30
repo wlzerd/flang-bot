@@ -19,15 +19,6 @@ ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "password")
 
 db.init_db()
 
-user_growth_data = [
-    {"month": "1월", "joined": 186, "left": 80},
-    {"month": "2월", "joined": 305, "left": 200},
-    {"month": "3월", "joined": 237, "left": 120},
-    {"month": "4월", "joined": 273, "left": 190},
-    {"month": "5월", "joined": 209, "left": 130},
-    {"month": "6월", "joined": 214, "left": 140},
-]
-
 
 @app.get("/users")
 def list_users():
@@ -67,7 +58,7 @@ def stats_overview():
 
 @app.get("/stats/user-growth")
 def user_growth():
-    return user_growth_data
+    return db.get_user_growth()
 
 
 @app.get("/logs/bot")

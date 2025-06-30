@@ -65,3 +65,13 @@ docker compose up
 `NEXT_PUBLIC_API_BASE_URL` 값도 동일하게 유지해야 합니다.
 
 컨테이너는 `users.db` 파일을 호스트와 공유하므로 데이터를 유지한 채 재시작할 수 있습니다.
+
+## 데이터베이스 마이그레이션
+
+업데이트로 `member_events` 테이블이 추가되었습니다. 기존 배포에서 테이블을 생성하려면 다음 명령을 실행합니다.
+
+```bash
+sqlite3 users.db < migrations/001_create_member_events.sql
+```
+
+봇이나 API를 재시작하면 새 테이블이 자동으로 사용됩니다.
