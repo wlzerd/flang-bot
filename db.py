@@ -1,6 +1,7 @@
 import sqlite3
 import json
 import time
+import datetime
 
 DB_FILE = "users.db"
 
@@ -120,6 +121,15 @@ def init_db():
             expires_at INTEGER NOT NULL,
             data TEXT,
             PRIMARY KEY (user_id, effect)
+        )
+        """
+    )
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS member_events (
+            user_id TEXT NOT NULL,
+            event TEXT NOT NULL,
+            timestamp INTEGER NOT NULL
         )
         """
     )
@@ -518,6 +528,17 @@ def set_member_status(user_id: str, is_member: bool):
     conn.close()
 
 
+def add_member_event(user_id: str, event: str):
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT INTO member_events(user_id, event, timestamp) VALUES (?, ?, strftime('%s','now'))",
+        (user_id, event),
+    )
+    conn.commit()
+    conn.close()
+
+
 def update_joined_at(user_id: str, ts: int):
     conn = sqlite3.connect(DB_FILE)
     cur = conn.cursor()
@@ -675,3 +696,41 @@ def get_recent_admin_logs(limit: int = 50) -> list[dict]:
         }
         for row in rows
     ]
+
+
+def _shift_month(date_obj: datetime.date, months: int) -> datetime.date:
+    year = date_obj.year + (date_obj.month - 1 + months) // 12
+    month = (date_obj.month - 1 + months) % 12 + 1
+    return datetime.date(year, month, 1)
+
+
+def get_user_growth(months: int = 6) -> list[dict]:
+    """Return monthly joined/left counts for the past N months."""
+    today = datetime.date.today().replace(day=1)
+    start_date = _shift_month(today, -(months - 1))
+    start_ts = int(time.mktime(start_date.timetuple()))
+
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT strftime('%Y-%m', datetime(timestamp, 'unixepoch')) AS m,
+               SUM(CASE WHEN event='joined' THEN 1 ELSE 0 END) AS joined,
+               SUM(CASE WHEN event='left' THEN 1 ELSE 0 END) AS left
+        FROM member_events
+        WHERE timestamp >= ?
+        GROUP BY m
+        ORDER BY m
+        """,
+        (start_ts,),
+    )
+    rows = {row[0]: (row[1] or 0, row[2] or 0) for row in cur.fetchall()}
+    conn.close()
+
+    results = []
+    for i in range(months):
+        month_date = _shift_month(start_date, i)
+        key = month_date.strftime("%Y-%m")
+        joined, left = rows.get(key, (0, 0))
+        results.append({"month": key, "joined": joined, "left": left})
+    return results

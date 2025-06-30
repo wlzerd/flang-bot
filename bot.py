@@ -384,11 +384,13 @@ async def on_member_join(member: discord.Member):
     joined_ts = int(member.joined_at.timestamp()) if member.joined_at else int(time.time())
     db.update_joined_at(str(member.id), joined_ts)
     db.set_member_status(str(member.id), True)
+    db.add_member_event(str(member.id), "joined")
 
 
 @bot.event
 async def on_member_remove(member: discord.Member):
     db.set_member_status(str(member.id), False)
+    db.add_member_event(str(member.id), "left")
 
 
 @bot.event
