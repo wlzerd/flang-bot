@@ -55,6 +55,17 @@ export default function LoginPage() {
             <Button type="submit" className="w-full mt-2">
               로그인
             </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full"
+              onClick={() =>
+                (window.location.href =
+                  `${process.env.NEXT_PUBLIC_API_BASE_URL}/discord/login`)
+              }
+            >
+              디스코드로 로그인
+            </Button>
           </form>
         </CardContent>
       </Card>
