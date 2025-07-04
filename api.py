@@ -25,6 +25,7 @@ ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "password")
 DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID")
 DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
 DISCORD_REDIRECT_URI = os.getenv("DISCORD_REDIRECT_URI")
+WEB_BASE_URL = os.getenv("WEB_BASE_URL", "http://localhost:3000")
 
 GUILD_ID = "1346875447153000529"
 ALLOWED_ROLE_IDS = {
@@ -139,7 +140,7 @@ async def discord_callback(code: str):
         )
         if token_res.status_code != 200:
             return HTMLResponse(
-                "<script>alert('인증 실패');window.location='/login';</script>"
+                f"<script>alert('인증 실패');window.location='{WEB_BASE_URL}/login';</script>"
             )
         token = token_res.json()
         access = token.get("access_token")
@@ -150,13 +151,13 @@ async def discord_callback(code: str):
         )
         if member_res.status_code != 200:
             return HTMLResponse(
-                "<script>alert('서버에 가입되어 있지 않습니다.');window.location='/login';</script>"
+                f"<script>alert('서버에 가입되어 있지 않습니다.');window.location='{WEB_BASE_URL}/login';</script>"
             )
         roles = member_res.json().get("roles", [])
         if not any(role in ALLOWED_ROLE_IDS for role in roles):
             return HTMLResponse(
-                "<script>alert('권한이 없습니다.');window.location='/login';</script>"
+                f"<script>alert('권한이 없습니다.');window.location='{WEB_BASE_URL}/login';</script>"
             )
     return HTMLResponse(
-        "<script>localStorage.setItem('loggedIn','true');window.location='/'</script>"
+        f"<script>localStorage.setItem('loggedIn','true');window.location='{WEB_BASE_URL}/'</script>"
     )

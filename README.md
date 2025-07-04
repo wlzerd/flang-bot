@@ -20,9 +20,11 @@
    DISCORD_CLIENT_ID=애플리케이션의클라이언트ID
    DISCORD_CLIENT_SECRET=애플리케이션의클라이언트시크릿
    DISCORD_REDIRECT_URI=http://localhost:8000/discord/callback
+   WEB_BASE_URL=http://localhost:3000
    ```
    `DISCORD_CLIENT_ID`와 `DISCORD_CLIENT_SECRET`은 Discord 개발자 포털에서 확인할 수 있으며,
    `DISCORD_REDIRECT_URI` 값도 같은 포털의 OAuth2 설정에서 허용된 Redirect URI로 등록해야 합니다.
+   `WEB_BASE_URL`은 로그인 후 이동할 웹 대시보드의 주소를 의미합니다.
    혹은 `DISCORD_TOKEN` 환경 변수를 직접 설정해도 됩니다.
 
 3. `bot.py`를 실행하여 봇을 시작합니다:
@@ -59,6 +61,7 @@ DISCORD_CLIENT_ID=애플리케이션의클라이언트ID
 DISCORD_CLIENT_SECRET=애플리케이션의클라이언트시크릿
 DISCORD_REDIRECT_URI=http://localhost:8000/discord/callback
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+WEB_BASE_URL=http://localhost:3000
 ```
 
 이 값들은 빌드 단계에서도 자동으로 주입되므로, 변경 후에는 다시 이미지를 빌드해야 합니다.
