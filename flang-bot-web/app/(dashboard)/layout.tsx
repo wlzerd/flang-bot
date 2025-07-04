@@ -97,7 +97,7 @@ export default function DashboardLayout({
                   <span className="sr-only">네비게이션 메뉴 열기</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="flex flex-col">
+              <SheetContent side="left" className="flex flex-col w-72">
                 <nav className="grid gap-2 text-lg font-medium">
                   <Link href="#" className="flex items-center gap-2 text-lg font-semibold mb-4">
                     <Bot className="h-6 w-6" />
