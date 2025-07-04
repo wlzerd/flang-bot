@@ -158,6 +158,4 @@ async def discord_callback(code: str):
             return HTMLResponse(
                 f"<script>alert('권한이 없습니다.');window.location='{WEB_BASE_URL}/login';</script>"
             )
-    return HTMLResponse(
-        f"<script>localStorage.setItem('loggedIn','true');window.location='{WEB_BASE_URL}/'</script>"
-    )
+    return RedirectResponse(f"{WEB_BASE_URL}/login?oauth=success")
