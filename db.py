@@ -133,6 +133,25 @@ def init_db():
         )
         """
     )
+    # Create indexes to speed up common queries
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_honey_history_user_ts ON honey_history(user_id, timestamp)"
+    )
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_adventure_logs_user_ts ON adventure_logs(user_id, timestamp)"
+    )
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_bot_logs_ts ON bot_logs(timestamp)"
+    )
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_admin_logs_ts ON admin_logs(timestamp)"
+    )
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_member_events_ts ON member_events(timestamp)"
+    )
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_users_honey ON users(honey)"
+    )
     cur.execute(
         "INSERT OR IGNORE INTO adventure_probabilities(id, success, fail, normal) VALUES (1, 30, 30, 40)"
     )
